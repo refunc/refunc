@@ -14,6 +14,69 @@ module.exports = {
         ['meta', { name: 'msapplication-TileColor', content: '#000000' }]
     ],
     base: '/',
-    title: 'Refunc',
-    description: 'Think of serverless',
+    ga: 'UA-8653269-3',
+    // serviceWorker: true,
+    locales: {
+        '/': {
+            lang: 'zh-CN',
+            title: 'Refunc',
+            description: '基于Kubernetes的云函数平台'
+        },
+        '/en/': {
+            lang: 'en-US',
+            title: 'Refunc',
+            description: 'A FaaS runs on kuberntes',
+        },
+    },
+    themeConfig: {
+        repo: 'refunc/refunc',
+        editLinks: false,
+        docsDir: 'docs',
+        locales: {
+            '/': {
+                label: '简体中文',
+                selectText: '选择语言',
+                editLinkText: '在 GitHub 上编辑此页',
+                lastUpdated: '上次更新',
+                nav: [
+                    {
+                        text: '指南',
+                        link: '/guide/',
+                    },
+                ],
+                sidebar: {
+                    '/guide/': genSidebarConfig('指南')
+                },
+            },
+            '/en/': {
+                label: 'English',
+                selectText: 'Languages',
+                editLinkText: 'Edit this page on GitHub',
+                lastUpdated: 'Last Updated',
+                nav: [
+                    {
+                        text: 'Guide',
+                        link: '/en/guide/',
+                    },
+                ],
+                sidebar: {
+                    '/en/guide/': genSidebarConfig('Guide')
+                },
+            },
+        },
+    },
 };
+
+function genSidebarConfig(title) {
+    return [
+        {
+            title,
+            collapsable: false,
+            children: [
+                '',
+                'quickstart',
+                'concepts',
+            ]
+        }
+    ]
+}
