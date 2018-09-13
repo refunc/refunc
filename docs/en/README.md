@@ -8,7 +8,7 @@ footer: Apache License v2.0 Licensed | Copyright © 2017-Present Bin Zhao
 ### Play in [Minikube](https://github.com/kubernetes/minikube)
 
 ```bash
-curl -Ls https://bit.ly/2N7DdE1 | kubectl create -f -
+curl -Ls https://bit.ly/2N7DdE1 | kubectl apply -f -
 ```
 
 ::: tip

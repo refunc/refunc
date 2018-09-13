@@ -7,7 +7,7 @@
 为了方便本地测试, Refunc 为 [Minikube](https://github.com/kubernetes/minikube) 和 [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) 预先生成了[所有组件的yaml](https://appstatics.oss-cn-shanghai.aliyuncs.com/refunc/start/play-local.yaml), 在终端里执行下面的命令:
 
 ```bash
-curl -Ls https://bit.ly/2N7DdE1 | kubectl create -f -
+curl -Ls https://bit.ly/2N7DdE1 | kubectl apply -f -
 ```
 
 如果一切顺利的话此时 Refunc 已经在本地的 Kubernetes 里跑起来了:
@@ -122,7 +122,7 @@ EOF
 ::: tip
 如果基于Minikube部署的, nodePort默认无法通过本地回环地址访问, 你需要找到当前Minikube虚拟机的IP地址
 ```bash
-export REFUNC_GATEWAY_URL=nats://${minikube ip}:30092
+export REFUNC_GATEWAY_URL=nats://$(minikube ip):30092
 ```
 :::
 
