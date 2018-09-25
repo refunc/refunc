@@ -129,7 +129,7 @@ export REFUNC_GATEWAY_URL=nats://$(minikube ip):30092
 确认现在系统 Python 版本至少是 3.6
 
 ```bash
-python -c 'import refunc, json; print(json.dumps(refunc.invoke("buildins/cluster-info")))'
+rfctl call buildins/cluster-info
 ```
 
 如果不出意外你将看到类似下面的输出:
@@ -224,7 +224,7 @@ Done "functions/helloworld"
 好了, 到目前为止我们已经实现了一个云函数, 在代码里调用试一试:
 
 ```bash
-python -c 'import refunc; print(refunc.invoke("functions/helloworld", name="ZhaoBin")["message"])'
+rfctl call functions/helloworld --data '{"name": "ZhaoBin"}'
 ```
 
 也可以在 python 的 console 或者 iPython 里交互的调用
