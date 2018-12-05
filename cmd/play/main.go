@@ -1,0 +1,211 @@
+package play
+
+import (
+	"context"
+	"os"
+	"sync"
+	"time"
+
+	"k8s.io/klog"
+
+	nats "github.com/nats-io/go-nats"
+	"github.com/refunc/refunc/pkg/controllers/funcinst"
+	"github.com/refunc/refunc/pkg/controllers/xenv"
+	"github.com/refunc/refunc/pkg/env"
+	"github.com/refunc/refunc/pkg/operators/funcinsts"
+	"github.com/refunc/refunc/pkg/operators/triggers/crontrigger"
+	"github.com/refunc/refunc/pkg/operators/triggers/httptrigger"
+	"github.com/refunc/refunc/pkg/transport/natsbased"
+	"github.com/refunc/refunc/pkg/utils/cmdutil"
+	"github.com/refunc/refunc/pkg/utils/cmdutil/pflagenv/wrapcobra"
+	"github.com/refunc/refunc/pkg/utils/cmdutil/sharedcfg"
+	"github.com/refunc/refunc/pkg/version"
+	"github.com/spf13/cobra"
+
+	// load builtins
+	_ "github.com/refunc/refunc/pkg/builtins/helloworld"
+	_ "github.com/refunc/refunc/pkg/builtins/sign"
+)
+
+// well known default constants
+const (
+	EnvMyPodName      = "REFUNC_NAME"
+	EnvMyPodNamespace = "REFUNC_NAMESPACE"
+
+	// We should start gc at given interval to free unused resources
+	DefaultGCPeriod = 2 * time.Minute
+
+	// DefaultIdleDuraion is default value of lifetime for a refunc
+	DefaultIdleDuraion = 3 * DefaultGCPeriod
+)
+
+var config struct {
+	Namespace   string
+	DisableRBAC bool
+}
+
+// NewCmd creates new commands
+func NewCmd() *cobra.Command {
+
+	cmd := &cobra.Command{
+		Use:   "play",
+		Short: "play refunc in local or dev environment",
+		Run: func(cmd *cobra.Command, args []string) {
+			// print commands' help
+			cmd.Help()
+		},
+	}
+	cmd.AddCommand(wrapcobra.Wrap(genCmd()))
+	cmd.AddCommand(wrapcobra.Wrap(startCmd()))
+
+	cmd.PersistentFlags().StringVarP(&config.Namespace, "namespace", "n", "refunc-play", "The scope of namepsace to manipulate")
+	cmd.PersistentFlags().BoolVar(&config.DisableRBAC, "disable-rbac", false, "If enable rbac")
+
+	return cmd
+}
+
+func genCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "gen",
+		Short: "generate all-in-one k8s resources for play in local",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := k8sTpl.Execute(os.Stdout, struct {
+				Namespace string
+				ImageTag  string
+				RBAC      bool
+			}{
+				Namespace: config.Namespace,
+				ImageTag:  version.Version,
+				RBAC:      !config.DisableRBAC,
+			}); err != nil {
+				klog.Fatal(err)
+			}
+		},
+	}
+	return cmd
+}
+
+func startCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "start",
+		Short: "start all components in one",
+		Run: func(cmd *cobra.Command, args []string) {
+			namespace := os.Getenv(EnvMyPodNamespace)
+			if len(namespace) == 0 {
+				klog.Fatalf("Must set env (%s)", EnvMyPodNamespace)
+			}
+			name := os.Getenv(EnvMyPodName)
+			if len(name) == 0 {
+				klog.Fatalf("Must set env (%s)", EnvMyPodName)
+			}
+
+			natsConn, err := env.NewNatsConn(nats.Name(os.Getenv(EnvMyPodNamespace) + "/" + os.Getenv(EnvMyPodName)))
+			if err != nil {
+				klog.Fatalf("Failed to connect to nats %s, %v", env.GlobalNatsURLString(), err)
+			}
+			defer natsConn.Close()
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			sc := sharedcfg.New(ctx, config.Namespace)
+			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+				// create funcinst controller
+				fnic, err := funcinst.NewController(
+					cfg.RestConfig(),
+					cfg.RefuncClient(),
+					cfg.KubeClient(),
+					cfg.RefuncInformers(),
+					cfg.KubeInformers(),
+				)
+				if err != nil {
+					klog.Fatalf("Failed to create funcinst controller, %v", err)
+				}
+				fnic.GCInterval = DefaultGCPeriod
+				fnic.IdleDuraion = DefaultIdleDuraion
+				return sharedcfg.RunnerFunc(func(stopC <-chan struct{}) {
+					fnic.Run(1, stopC)
+				})
+			})
+
+			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+				// create xenv controller
+				xnc, err := xenv.NewController(
+					cfg.RestConfig(),
+					cfg.RefuncClient(),
+					cfg.KubeClient(),
+					cfg.RefuncInformers(),
+					cfg.KubeInformers(),
+				)
+				if err != nil {
+					klog.Fatalf("Failed to create funcinst controller, %v", err)
+				}
+				xnc.GCInterval = DefaultGCPeriod
+				xnc.IdleDuraion = DefaultIdleDuraion
+				return sharedcfg.RunnerFunc(func(stopC <-chan struct{}) {
+					xnc.Run(1, stopC)
+				})
+			})
+
+			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+				r, err := funcinsts.NewOperator(
+					cfg.RestConfig(),
+					cfg.RefuncClient(),
+					cfg.RefuncInformers(),
+					natsbased.NewHandler(natsConn),
+				)
+				if err != nil {
+					klog.Fatalf("Failed to create operator, %v", err)
+				}
+				r.TappingInterval = 30 * time.Second
+
+				return r
+			})
+
+			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+				r, err := crontrigger.NewOperator(
+					cfg.RestConfig(),
+					natsConn,
+					cfg.RefuncClient(),
+					cfg.RefuncInformers(),
+				)
+				if err != nil {
+					klog.Fatalf("Failed to create trigger, %v", err)
+				}
+
+				return r
+			})
+
+			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+				r, err := httptrigger.NewOperator(
+					cfg.RestConfig(),
+					natsConn,
+					cfg.RefuncClient(),
+					cfg.RefuncInformers(),
+				)
+				if err != nil {
+					klog.Fatalf("Failed to create trigger, %v", err)
+				}
+
+				r.CORS.AllowedOrigins = []string{"*"}
+				r.CORS.AllowedMethods = []string{"*"}
+				r.CORS.AllowedHeaders = []string{"*"}
+				r.CORS.AllowCredentials = true
+
+				return r
+			})
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				sc.Run(ctx.Done())
+			}()
+
+			klog.Infof(`Received signal "%v", exiting...`, <-cmdutil.GetSysSig())
+
+			cancel()
+			wg.Wait()
+		},
+	}
+	return cmd
+}

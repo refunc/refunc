@@ -129,12 +129,12 @@ export REFUNC_GATEWAY_URL=nats://$(minikube ip):30092
 确认现在系统 Python 版本至少是 3.6
 
 ```bash
-rfctl call buildins/cluster-info
+rfctl call builtins/cluster-info
 ```
 
 如果不出意外你将看到类似下面的输出:
 
-> {"bundleVersion": "6c0f75ff", "agentVersion": "1f6db1fa"}
+> {"refuncVersion": "6c0f75ff", "agentVersion": "1f6db1fa"}
 
 ## 创建第一个函数
 

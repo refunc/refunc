@@ -1,0 +1,43 @@
+#!/bin/bash
+
+export NAMESPACE=${CI_PROJECT_NAMESPACE:="refunc"}
+
+source ./hack/scripts/common
+
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    DIRTY="-dirty"
+fi
+
+COMMIT=$(git rev-parse --short HEAD)
+GIT_TAG=$(git tag -l --contains HEAD | head -n 1)
+
+if [[ -z "$DIRTY" && -n "$GIT_TAG" ]]; then
+    VERSION=$GIT_TAG
+    export REFUNC_VERSION=${VERSION}
+    export AGENT_VERSION=${VERSION}
+    export LOADER_VERSION=${VERSION}
+    export SIDECAR_VERSION=${VERSION}
+    export CREDSYNCER_VERSION=${VERSION}
+else
+    _DEPS_VERSION=$(
+        echo \
+        $(git_last_commit pkg) \
+        $(git_last_commit cmd/refunc) \
+        $(git_last_commit cmd/controller) \
+        $(git_last_commit cmd/triggers) | my_sha1sum | cut -c 1-8
+    )
+    export REFUNC_VERSION=${_DEPS_VERSION}${DIRTY}
+    export AGENT_VERSION=$(echo $(get_version pkg/runtime/refunc/loader/*.go cmd/agent/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
+    export LOADER_VERSION=$(echo $(get_version pkg/runtime/lambda/loader/*.go cmd/loader/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
+    export SIDECAR_VERSION=$(echo $(git_last_commit pkg/sidecar) $(get_version cmd/sidecar/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
+    export CREDSYNCER_VERSION=$(get_version pkg/apis/refunc/v1beta3/*.go pkg/credsyncer/*.go cmd/credsyncer/*.go package/Dockerfile)${DIRTY}
+fi
+
+IMAGE_REPO=${IMAGE_REPO:-refunc}
+IMAGE_PREFIX="${IMAGE_PREFIX}"
+
+export REFUNC_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}refunc:${REFUNC_VERSION}"
+export AGENT_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}agent:${AGENT_VERSION}"
+export LOADER_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}loader:${REFUNC_VERSION}"
+export SIDECAR_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}sidecar:${REFUNC_VERSION}"
+export CREDSYNCER_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}credsyncer:${CREDSYNCER_VERSION}"
