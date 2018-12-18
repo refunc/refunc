@@ -23,7 +23,7 @@ my_sed () {
 my_sha1sum () {
   case $(uname) in
     Darwin) shasum "$@";;
-    *)      sha1sum -u "$@";;
+    *)      sha1sum "$@";;
   esac
 }
 

@@ -2,7 +2,7 @@ SHELL := /bin/bash # ensure bash is used
 
 BINS := refunc loader sidecar agent
 
-OS   := $(shell eval $$(go env); echo $${GOOS})
+GOOS := $(shell eval $$(go env); echo $${GOOS})
 ARCH := $(shell eval $$(go env); echo $${GOARCH})
 
 LD_FLAGS := -X github.com/refunc/refunc/pkg/version.Version=$(shell source hack/scripts/version; echo $${REFUNC_VERSION}) \
@@ -10,17 +10,23 @@ LD_FLAGS := -X github.com/refunc/refunc/pkg/version.Version=$(shell source hack/
 -X github.com/refunc/refunc/pkg/version.LoaderVersion=$(shell source hack/scripts/version; echo $${LOADER_VERSION}) \
 -X github.com/refunc/refunc/pkg/version.SidecarVersion=$(shell source hack/scripts/version; echo $${SIDECAR_VERSION})
 
+ifneq ($(GOOS),linux)
+images:
+	export GOOS=linux; make $@
+else
 images: $(addsuffix -image, $(BINS))
+endif
 
 bins: $(BINS)
 
-bin/$(OS):
+bin/$(GOOS):
 	mkdir -p $@
 
-$(BINS): % : bin/$(OS) bin/$(OS)/%
+$(BINS): % : bin/$(GOOS) bin/$(GOOS)/%
 	@source hack/scripts/common; log_info "Building $@ Done"
 
-bin/$(OS)/%:
+bin/$(GOOS)/%:
+	@echo GOOS=$(GOOS)
 	CGO_ENABLED=0 go build \
 	-tags netgo -installsuffix netgo \
 	-ldflags "-s -w $(LD_FLAGS)" \
@@ -28,6 +34,10 @@ bin/$(OS)/%:
 	-o $@ \
 	./cmd/$*/
 
+ifneq ($(GOOS),linux)
+%-image:
+	export GOOS=linux; make $@
+else
 %-image: % package/Dockerfile
 	@rm package/$* 2>/dev/null || true && cp bin/linux/$* package/
 	@ source hack/scripts/common \
@@ -37,40 +47,42 @@ bin/$(OS)/%:
 	--build-arg http_proxy="$${HTTP_RPOXY}" \
 	--build-arg BIN_TARGET=$* \
 	-t $(IMAGE) .
+endif
 
 AGENT_IMAGE=$(shell source hack/scripts/version; echo $${AGENT_IMAGE})
 REFUNC_IMAGE=$(shell source hack/scripts/version; echo $${REFUNC_IMAGE})
-bin/$(OS)/refunc: LD_FLAGS := $(LD_FLAGS) -X github.com/refunc/refunc/pkg/runtime/refunc/runtime.InitContainerImage=$(AGENT_IMAGE)
-bin/$(OS)/refunc: $(shell find pkg -type f -name '*.go') $(shell find cmd -type f -name '*.go')
+bin/$(GOOS)/refunc: LD_FLAGS := $(LD_FLAGS) -X github.com/refunc/refunc/pkg/runtime/refunc/runtime.InitContainerImage=$(AGENT_IMAGE)
+bin/$(GOOS)/refunc: $(shell find pkg -type f -name '*.go') $(shell find cmd -type f -name '*.go')
 refunc-image: IMAGE=$(REFUNC_IMAGE)
 refunc-image: agent-image
 
 LOADER_IMAGE=$(shell source hack/scripts/version; echo $${LOADER_IMAGE})
-bin/$(OS)/loader: cmd/loader/*.go pkg/runtime/lambda/loader/*.go
+bin/$(GOOS)/loader: cmd/loader/*.go pkg/runtime/lambda/loader/*.go
 loader-image: IMAGE=$(LOADER_IMAGE)
 
 SIDECAR_IMAGE=$(shell source hack/scripts/version; echo $${SIDECAR_IMAGE})
-bin/$(OS)/loader: cmd/sidecar/*.go $(shell find pkg/sidecar -type f -name '*.go')
+bin/$(GOOS)/loader: cmd/sidecar/*.go $(shell find pkg/sidecar -type f -name '*.go')
 loader-image: IMAGE=$(LOADER_IMAGE)
 
 AGENT_IMAGE=$(shell source hack/scripts/version; echo $${AGENT_IMAGE})
-bin/$(OS)/agent: cmd/agent/*.go pkg/runtime/refunc/loader/*.go
+bin/$(GOOS)/agent: cmd/agent/*.go pkg/runtime/refunc/loader/*.go
 agent-image: IMAGE=$(AGENT_IMAGE)
 
 CREDSYNCER_VERSION=$(shell source hack/scripts/version; echo $${CREDSYNCER_VERSION})
 CREDSYNCER_IMAGE=$(shell source hack/scripts/version; echo $${CREDSYNCER_IMAGE})
-bin/$(OS)/credsyncer: pkg/apis/refunc/v1beta3/*.go pkg/credsyncer/*.go cmd/credsyncer/*.go
+bin/$(GOOS)/credsyncer: pkg/apis/refunc/v1beta3/*.go pkg/credsyncer/*.go cmd/credsyncer/*.go
 credsyncer-image: IMAGE=$(CREDSYNCER_IMAGE)
 
-versions: images
-	@echo 'controller: ' >values.images.yaml; \
-	echo '  image: refunc:${REFUNC_VERSION}' >>values.images.yaml; \
-	echo 'credsyncer: ' >>values.images.yaml; \
-	echo '  image: credsyncer:${CREDSYNCER_VERSION}' >>values.images.yaml; \
-	echo 'triggers: ' >>values.images.yaml; \
-	echo '  eventTrigger: ' >>values.images.yaml; \
-	echo '    image: refunc:${REFUNC_VERSION}' >>values.images.yaml; \
-	echo '  timeTrigger: ' >>values.images.yaml; \
-	echo '    image: refunc:${REFUNC_VERSION}' >>values.images.yaml; \
-	echo '  httpTrigger: ' >>values.images.yaml; \
-	echo '    image: refunc:${REFUNC_VERSION}' >>values.images.yaml;
+push: images
+	@source hack/scripts/common; log_info "start pushing images"
+	docker push $(shell source hack/scripts/version; echo $${REFUNC_IMAGE})
+	docker push $(shell source hack/scripts/version; echo $${LOADER_IMAGE})
+	docker push $(shell source hack/scripts/version; echo $${SIDECAR_IMAGE})
+	docker push $(shell source hack/scripts/version; echo $${AGENT_IMAGE})
+
+build-container:
+	docker build -t refunc:build -f Dockerfile.build .
+
+dockerbuild: build-container
+	@source hack/scripts/common; log_info "make bins in docker"
+	@docker run --rm -it -v $(shell pwd):/go/src/github.com/refunc/refunc refunc:build make bins

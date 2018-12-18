@@ -1,0 +1,5 @@
+FROM golang:1.11
+
+VOLUME [ "/go/src/github.com/refunc/refunc" ]
+
+WORKDIR /go/src/github.com/refunc/refunc
