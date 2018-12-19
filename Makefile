@@ -66,7 +66,7 @@ bin/$(GOOS)/loader: cmd/sidecar/*.go $(shell find pkg/sidecar -type f -name '*.g
 sidecar-image: IMAGE=$(SIDECAR_IMAGE)
 
 AGENT_IMAGE=$(shell source hack/scripts/version; echo $${AGENT_IMAGE})
-bin/$(GOOS)/agent: cmd/agent/*.go pkg/runtime/refunc/loader/*.go
+bin/$(GOOS)/agent: cmd/agent/*.go pkg/runtime/legacy/loader/*.go
 agent-image: IMAGE=$(AGENT_IMAGE)
 
 CREDSYNCER_VERSION=$(shell source hack/scripts/version; echo $${CREDSYNCER_VERSION})

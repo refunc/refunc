@@ -29,7 +29,7 @@ import (
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/runtime"
-	"github.com/refunc/refunc/pkg/runtime/refunc/loader"
+	"github.com/refunc/refunc/pkg/runtime/legacy/loader"
 	"github.com/refunc/refunc/pkg/utils/rfutil"
 	"github.com/refunc/refunc/pkg/utils/rtutil"
 	"github.com/refunc/refunc/pkg/version"

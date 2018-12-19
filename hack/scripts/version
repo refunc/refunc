@@ -28,7 +28,7 @@ else
         $(get_version cmd/triggers/*.go) | my_sha1sum | cut -c 1-8
     )
     export REFUNC_VERSION=${_DEPS_VERSION}${DIRTY}
-    export AGENT_VERSION=$(echo $(get_version pkg/runtime/refunc/loader/*.go cmd/agent/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
+    export AGENT_VERSION=$(echo $(get_version pkg/runtime/legacy/loader/*.go cmd/agent/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
     export LOADER_VERSION=$(echo $(get_version pkg/runtime/lambda/loader/*.go cmd/loader/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
     export SIDECAR_VERSION=$(echo $(get_version $(find pkg/sidecar -type f -name '*.go') $(find pkg/transport -type f -name '*.go') cmd/sidecar/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
     export CREDSYNCER_VERSION=$(get_version pkg/apis/refunc/v1beta3/*.go pkg/credsyncer/*.go cmd/credsyncer/*.go package/Dockerfile)${DIRTY}

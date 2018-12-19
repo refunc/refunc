@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/refunc/refunc/pkg/runtime/refunc/loader"
+	"github.com/refunc/refunc/pkg/runtime/legacy/loader"
 	"github.com/refunc/refunc/pkg/utils/cmdutil"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/flagtools"
 	"github.com/spf13/pflag"

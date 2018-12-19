@@ -3,7 +3,7 @@
 #
 # testing using
 # $ ./agent -k key --v 3 -l :7788
-# $ cat pkg/runtime/refunc/load.sh| ssh setup@127.0.0.1 -Tp 7788
+# $ cat pkg/runtime/legacy/load.sh| ssh setup@127.0.0.1 -Tp 7788
 # $ echo "Hello\n" | ssh foo@127.0.0.1 -Tp 7788
 #
 
