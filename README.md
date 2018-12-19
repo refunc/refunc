@@ -1,4 +1,4 @@
-# refunc
+# Refunc
 
 Refunc is a painless serverless platform that runs aws lambda runtimes(via lambci images) on k8s
 
