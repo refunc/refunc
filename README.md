@@ -4,6 +4,10 @@ Refunc is a painless serverless platform that runs aws lambda runtimes(via lambc
 
 ## Quick Start
 
+Before start, you need a k8s runs on somewhere, [minikube](https://github.com/kubernetes/minikube) is pretty enough, [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) with kubernetes enabled is recommended if your'd like to try on macOS.
+
+Install Refunc play(which is a mini setup of refunc) using the following commands:
+
 ```shell
 docker run --rm -it -e REFUNC_ENV=cluster refunc/refunc refunc play gen -n refunc-play | kubectl apply -f -
 ```
