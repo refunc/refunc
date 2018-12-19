@@ -2,6 +2,17 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:fd94f64e9fe4cbb118598fb33217e87d5c05fb926313f8d3929185f560b2080d"
+  name = "git.v87.us/pkg/util"
+  packages = [
+    "flagtools",
+    "pflagenv",
+  ]
+  pruneopts = "NT"
+  revision = "9d30f7f04c5460bdbdb2b3a323cba7b62245239d"
+
+[[projects]]
   digest = "1:d8ebbd207f3d3266d4423ce4860c9f3794956306ded6c7ba312ecc69cdfbf04c"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -51,6 +62,21 @@
   pruneopts = "NT"
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:88f71a35895c9042c7b63d6359b6f0c163bfd887bed4e891b08196151d79ab2f"
+  name = "github.com/dsnet/compress"
+  packages = [
+    ".",
+    "bzip2",
+    "bzip2/internal/sais",
+    "internal",
+    "internal/errors",
+    "internal/prefix",
+  ]
+  pruneopts = "NT"
+  revision = "cc9eb1d7ad760af14e8f918698f745e80377af4f"
 
 [[projects]]
   digest = "1:1fcea0c9ffdfd8254f3170e0678162587871cf522e377ea8116256f14d62f811"
@@ -189,6 +215,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:2975cea4b68121134776e0f636a4b0d260575b0e35c3fc9f513fdcc94e623cb9"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
+
+[[projects]]
+  branch = "master"
   digest = "1:05f95ffdfcf651bdb0f05b40b69e7f5663047f8da75c72d58728acb59b5cc107"
   name = "github.com/google/btree"
   packages = ["."]
@@ -314,6 +348,14 @@
   version = "v1.0.3"
 
 [[projects]]
+  digest = "1:7acab0fa3cc09d008353d989c5d9289dab59eb456fa7de2011e4622f36f1c338"
+  name = "github.com/mholt/archiver"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "d572b2e8b82726cee9476d1b9d63a7fe9b601ff1"
+  version = "v3.1.1"
+
+[[projects]]
   digest = "1:4715cd0a4bb73b3200c797b1b109c7c2edf6a602747986acde22d2d78c930507"
   name = "github.com/minio/minio-go"
   packages = [
@@ -373,6 +415,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:2aad42cee2de3346961cb38e77eada96150d266b9a5e289f5f8c05696b22f875"
+  name = "github.com/nwaples/rardecode"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "cc3e4b2381762c56dbcdf9f93be03349a1dc1c14"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:bf2ac97824a7221eb16b096aecc1c390d4c8a4e49524386aaa2e2dd215cbfb31"
   name = "github.com/petar/GoLLRB"
@@ -387,6 +437,17 @@
   pruneopts = "NT"
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
+
+[[projects]]
+  digest = "1:99494afb16ee0f06d2668ee65bffcba8e7d6619a54a9f2ec9afff9357b31aa9e"
+  name = "github.com/pierrec/lz4"
+  packages = [
+    ".",
+    "internal/xxh32",
+  ]
+  pruneopts = "NT"
+  revision = "635575b42742856941dbc767b44905bb9ba083f6"
+  version = "v2.0.7"
 
 [[projects]]
   digest = "1:d34a64bd0ab5cbd70a84da730424989cdd17b0bf637729b58e5bd9f235ca05be"
@@ -427,6 +488,27 @@
   pruneopts = "NT"
   revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
   version = "v1.0.3"
+
+[[projects]]
+  digest = "1:4852072d3f5ca54d76f326f9841ab835a7e7a31b1850d90533b540383c0e290e"
+  name = "github.com/ulikunitz/xz"
+  packages = [
+    ".",
+    "internal/hash",
+    "internal/xlog",
+    "lzma",
+  ]
+  pruneopts = "NT"
+  revision = "590df8077fbcb06ad62d7714da06c00e5dd2316d"
+  version = "v0.5.5"
+
+[[projects]]
+  branch = "master"
+  digest = "1:159b0dc5c65f4e957a1ad3c848effb2bcb6199271683f702852bacf261ebd5e2"
+  name = "github.com/xi2/xz"
+  packages = ["."]
+  pruneopts = "NT"
+  revision = "48954b6210f8d154cb5f8484d3a3e1f83489309e"
 
 [[projects]]
   branch = "master"
@@ -844,6 +926,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "git.v87.us/pkg/util/flagtools",
     "github.com/allegro/bigcache",
     "github.com/dgrijalva/jwt-go",
     "github.com/fsnotify/fsnotify",
@@ -853,12 +936,12 @@
     "github.com/gorilla/handlers",
     "github.com/gorilla/mux",
     "github.com/mattn/go-shellwords",
+    "github.com/mholt/archiver",
     "github.com/minio/minio-go",
     "github.com/nats-io/go-nats",
     "github.com/nats-io/nuid",
     "github.com/refunc/go-observer",
     "github.com/robfig/cron",
-    "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "golang.org/x/crypto/blake2b",
