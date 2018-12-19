@@ -11,13 +11,13 @@ LD_FLAGS := -X github.com/refunc/refunc/pkg/version.Version=$(shell source hack/
 -X github.com/refunc/refunc/pkg/version.SidecarVersion=$(shell source hack/scripts/version; echo $${SIDECAR_VERSION})
 
 clean:
-	rm -rf bin/$(GOOS)
+	rm -rf bin/*
 
 ifneq ($(GOOS),linux)
-images:
+images: clean
 	export GOOS=linux; make $@
 else
-images: clean $(addsuffix -image, $(BINS))
+images: $(addsuffix -image, $(BINS))
 endif
 
 bins: $(BINS)
