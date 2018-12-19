@@ -22,8 +22,6 @@ import (
 	"github.com/refunc/refunc/pkg/utils"
 )
 
-const defaultJobTimeout = 9 * time.Minute // hard coded max timeout for a task, same as AWS
-
 var emptyProp = observer.NewProperty(nil)
 
 func (ld *Agent) serve(fnrt *FuncRuntime, opener func() (*exec.Cmd, error), conn *nats.Conn) {
@@ -67,7 +65,7 @@ func (ld *Agent) serve(fnrt *FuncRuntime, opener func() (*exec.Cmd, error), conn
 	}
 
 	var (
-		timeout = defaultJobTimeout
+		timeout = messages.DefaultJobTimeout
 		tapProp = observer.NewProperty(struct{}{})
 	)
 	tap := func() {

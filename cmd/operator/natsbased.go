@@ -7,6 +7,7 @@ import (
 	"k8s.io/klog"
 
 	nats "github.com/nats-io/go-nats"
+	"github.com/refunc/refunc/pkg/credsyncer"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/operators/funcinsts"
 	"github.com/refunc/refunc/pkg/transport/natsbased"
@@ -33,6 +34,7 @@ func cmdNatsBased() *cobra.Command {
 			cfg.RefuncClient(),
 			cfg.RefuncInformers(),
 			natsbased.NewHandler(natsConn),
+			credsyncer.NewGeneratedProvider(24*time.Hour),
 		)
 		if err != nil {
 			natsConn.Close()

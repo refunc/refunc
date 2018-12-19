@@ -70,6 +70,14 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 		// unpack source code
 		klog.Infof("(loader) unpacking %s to %s", filepath.Base(filename), ld.taskRoot())
 		err = archiver.Unarchive(filename, ld.taskRoot())
+		if os.Geteuid() == 0 {
+			klog.Info("(loader) fix task folder's permission chown slicer:497")
+			filepath.Walk(ld.taskRoot(), func(path string, f os.FileInfo, err error) error {
+				klog.V(3).Infof("(loader) chown for %q", path)
+				os.Chown(path, 498, 497)
+				return nil
+			})
+		}
 	})
 
 	if err != nil {
@@ -135,13 +143,18 @@ func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if os.Geteuid() == 0 {
+		klog.Info("(loader) will start using user sbx_user1051")
 		cmd.SysProcAttr.Credential = &syscall.Credential{Uid: 496, Gid: 495}
 	}
 	return cmd, nil
 }
 
 func saveURL(u string, folder string) (filename string, err error) {
-	rsp, err := http.Get(u)
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		return "", err
+	}
+	rsp, err := http.Get(parsedURL.String())
 	if err != nil {
 		return "", err
 	}
@@ -151,7 +164,7 @@ func saveURL(u string, folder string) (filename string, err error) {
 		return "", fmt.Errorf("loader: unable to download file, got %v", rsp.StatusCode)
 	}
 
-	filename = filepath.Join(folder, path.Base(rsp.Request.URL.Path))
+	filename = filepath.Join(folder, path.Base(parsedURL.Path))
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return "", err

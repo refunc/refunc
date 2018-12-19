@@ -13,10 +13,7 @@ import (
 	"github.com/refunc/refunc/pkg/utils"
 )
 
-const (
-	defaultJobTimeout = 9 * time.Minute // hard coded max timeout for a task, same as AWS
-	codeLaunchBias    = 10 * time.Second
-)
+const codeLaunchBias = 10 * time.Second
 
 // ensureTask gets or creates a client.TaskResolver
 func (t *httpHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Trigger, request *messages.InvokeRequest) (client.TaskResolver, error) {
@@ -34,7 +31,7 @@ func (t *httpHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Tr
 		}()
 
 		// parse job max timeout for a running job
-		var timeout = defaultJobTimeout
+		var timeout = messages.DefaultJobTimeout
 		if fndef.Spec.Runtime != nil && fndef.Spec.Runtime.Timeout > 0 {
 			timeout = time.Second*time.Duration(fndef.Spec.Runtime.Timeout) + codeLaunchBias
 		}

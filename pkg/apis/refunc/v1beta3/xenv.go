@@ -1,6 +1,8 @@
 package v1beta3
 
 import (
+	"encoding/json"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,7 +68,7 @@ type XenvSpec struct {
 	// A key used for runtime builder to access the shell
 	SetupKey string `json:"key"`
 
-	ExtraJSON []byte `json:"extra,omitempty"`
+	Extra json.RawMessage `json:"extra,omitempty"`
 }
 
 // AsOwner returns *metav1.OwnerReference

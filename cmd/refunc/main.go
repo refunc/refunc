@@ -13,13 +13,16 @@ import (
 	"github.com/refunc/refunc/cmd/controller"
 	"github.com/refunc/refunc/cmd/play"
 	"github.com/refunc/refunc/cmd/triggers"
-	_ "github.com/refunc/refunc/pkg/runtime/refunc/runtime"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/flagtools"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/pflagenv"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/pflagenv/wrapcobra"
 	"github.com/refunc/refunc/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	// config runtimes and transport
+	_ "github.com/refunc/refunc/pkg/runtime/lambda/runtime"
+	_ "github.com/refunc/refunc/pkg/runtime/refunc/runtime"
 )
 
 func main() {

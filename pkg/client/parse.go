@@ -76,10 +76,10 @@ func ParseAction(raw []byte, p TaskParser) (next bool) {
 func SetReqeustDeadline(ctx context.Context, request *messages.InvokeRequest) {
 	deadline := request.Deadline
 	if deadline.IsZero() {
-		deadline = time.Now().Add(messages.MaxTimeout)
+		deadline = time.Now().Add(messages.DefaultJobTimeout)
 	}
 	timeout := GetTimeoutHint(ctx)
-	if time.Now().Add(timeout).Before(deadline) {
+	if timeout > 500*time.Millisecond && time.Now().Add(timeout).Before(deadline) {
 		deadline = time.Now().Add(timeout)
 	}
 	request.Deadline = deadline

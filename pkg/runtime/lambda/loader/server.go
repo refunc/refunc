@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"k8s.io/klog"
 
@@ -73,6 +75,28 @@ func (ld *simpleLoader) exec(fn *types.Function) error {
 	if err != nil {
 		return err
 	}
+
+	if apiAddr := fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"]; apiAddr != "" {
+		klog.Infoln("(loader) ping api")
+		for i := 0; i < 200; i++ {
+			res, err := http.Get("http://" + apiAddr + "/2018-06-01/ping")
+			if err != nil {
+				select {
+				case <-ld.ctx.Done():
+					return ld.ctx.Err()
+				case <-time.After(5 * time.Millisecond):
+					continue
+				}
+			}
+
+			body, err := ioutil.ReadAll(res.Body)
+			if err != nil || string(body) != "pong" {
+				return errors.New("loader: failed to reqeust api")
+			}
+			break
+		}
+	}
+
 	klog.Infof("(loader) exec %s", strings.Join(cmd.Args, " "))
 	return cmd.Run()
 }

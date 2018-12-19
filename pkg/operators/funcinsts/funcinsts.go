@@ -117,17 +117,17 @@ func (r *Operator) GetFuncInstance(trigger *rfv1beta3.Trigger) (*rfv1beta3.Funci
 	}
 
 	// preparse runtime config
-	var rtCtx rfv1beta3.RuntimeContext
-	rtCtx.Permissions = rfv1beta3.NewDefaultPermissions(fni, env.GlobalScopeRoot)
-	rtCtx.Credentials.AccessKey, rtCtx.Credentials.SecretKey = env.RandomCredentials()
-
-	// issue tokens, TODO: stop issue token for funcinst
-	token, err := rfutil.IssueToken(fni.Namespace+"/"+fni.Name, rtCtx.Permissions, time.Hour*24)
+	fni.Spec.Runtime.Permissions = rfv1beta3.NewDefaultPermissions(fni, env.GlobalScopeRoot)
+	fni.Spec.Runtime.Credentials.AccessKey, fni.Spec.Runtime.Credentials.SecretKey, err = r.credsP.IssueKeyPair(fni)
 	if err != nil {
 		return nil, err
 	}
-	rtCtx.Credentials.Token = token
-	fni.Spec.Runtime = rtCtx
+	// issue tokens, TODO: stop issue token for funcinst
+	token, err := r.credsP.IssueAccessToken(fni)
+	if err != nil {
+		return nil, err
+	}
+	fni.Spec.Runtime.Credentials.Token = token
 
 	// try to create and update created fni
 	err = retryOnceOnError(func() error {

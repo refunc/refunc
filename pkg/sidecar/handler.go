@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/refunc/refunc/pkg/messages"
+	"github.com/refunc/refunc/pkg/utils"
 )
 
 // ReigsterHandlers register api handlers at given router
@@ -52,8 +53,11 @@ WAIT_LOOP:
 
 	deadline := request.Deadline
 	if deadline.IsZero() {
-		deadline = time.Now().Add(messages.MaxTimeout)
+		// FIXME (bin)
+		// potential long running task?
+		deadline = time.Now().Add(24 * 365 * 10 * time.Hour)
 	}
+	klog.V(3).Infof("(car) on reqeust %s with deadline %s", request.RequestID, deadline.Format(time.RFC3339))
 
 	// set headers
 	w.Header().Set("Content-Type", "application/json")
@@ -77,6 +81,7 @@ func (sc *Sidecar) handleInvocationResponse(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	klog.V(3).Infof("(sidecar) on response %s - %v", rid, utils.ByteSize(uint64(len(body))))
 	if err := sc.eng.SetResult(rid, body, nil); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 	} else {
@@ -91,9 +96,13 @@ func (sc *Sidecar) handleError(w http.ResponseWriter, r *http.Request) {
 	var lambdaErr messages.ErrorMessage
 	body, err := ioutil.ReadAll(r.Body)
 
-	if err != nil || json.Unmarshal(body, lambdaErr) != nil {
+	if err != nil {
 		code, status = 299, "InvalidErrorShape"
-		klog.Errorf("(sidecar) handleInitError json error, %v", err)
+		lambdaErr = *messages.GetErrorMessage(err)
+	} else if err := json.Unmarshal(body, &lambdaErr); err != nil {
+		code, status = 299, "InvalidErrorShape"
+		lambdaErr = *messages.GetErrorMessage(err)
+		klog.Errorf("(sidecar) handleInitError json error, %v, %v", err, string(body))
 	}
 
 	errorType := r.Header.Get("Lambda-Runtime-Function-Error-Type")
@@ -101,6 +110,7 @@ func (sc *Sidecar) handleError(w http.ResponseWriter, r *http.Request) {
 		lambdaErr.Type = errorType
 	}
 
+	klog.V(3).Infof("(sidecar) on error, %v", lambdaErr)
 	if rid := mux.Vars(r)["rid"]; rid != "" {
 		if err := sc.eng.SetResult(rid, nil, lambdaErr); err != nil {
 			writeError(w, http.StatusInternalServerError, err)

@@ -10,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	listerv1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
-	"k8s.io/client-go/rest"
 
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	"github.com/refunc/refunc/pkg/utils/rfutil"
@@ -28,7 +27,7 @@ type Interface interface {
 
 	// InitPod initialize given pod
 	// Note: one should not assume that the workDir still persist after InitPod being called
-	InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, refunc *rfv1beta3.Funcdef, tpl *rfv1beta3.Xenv, cfg rest.Config, workDir string) error
+	InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, refunc *rfv1beta3.Funcdef, tpl *rfv1beta3.Xenv, workDir string) error
 }
 
 // well known errors
@@ -51,8 +50,6 @@ func Register(r Interface) error {
 	}
 	return ErrRuntimeAlreadyExist
 }
-
-var isController = true
 
 // ForXenv returns runtime object for given xenv
 func ForXenv(xenv *rfv1beta3.Xenv) Interface {

@@ -2,12 +2,15 @@ package natsbased
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/refunc/refunc/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
@@ -19,8 +22,6 @@ import (
 	"github.com/refunc/refunc/pkg/operators"
 	"github.com/refunc/refunc/pkg/utils"
 )
-
-const defaultJobTimeout = 9 * time.Minute // hard coded max timeout for a task, same as AWS
 
 var (
 	errInvalidRequest = errors.New("Invalid request topic")
@@ -161,7 +162,7 @@ func (nh *natsHandler) forwardRequest(msg *nats.Msg, fndef *rfv1beta3.Funcdef, t
 	}
 
 	// parse job max timeout for a running job
-	var timeout = defaultJobTimeout
+	var timeout = messages.DefaultJobTimeout
 	if fndef.Spec.Runtime != nil && fndef.Spec.Runtime.Timeout > 0 {
 		timeout = time.Second * time.Duration(fndef.Spec.Runtime.Timeout)
 	}
@@ -173,13 +174,25 @@ func (nh *natsHandler) forwardRequest(msg *nats.Msg, fndef *rfv1beta3.Funcdef, t
 	reqEndpoint := fninst.ServiceEndpoint()
 	conn := nh.natsConn
 
+	// verify request
+	data := msg.Data
+	var req messages.InvokeRequest
+	if err := json.Unmarshal(data, &req); err != nil {
+		nh.replyError(msg.Subject, msg.Reply, err)
+		return
+	}
+	if req.Deadline.IsZero() {
+		// enforce deadline
+		client.SetReqeustDeadline(ctx, &req)
+	}
+
 	// forwarding request
 	forwardReq := func() {
 		// send request
 		if err := conn.PublishMsg(&nats.Msg{
 			Subject: reqEndpoint,
 			Reply:   msg.Reply,
-			Data:    msg.Data,
+			Data:    data,
 		}); err != nil {
 			nh.replyError(msg.Subject, msg.Reply, err)
 			return

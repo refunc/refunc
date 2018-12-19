@@ -26,6 +26,7 @@ import (
 	"github.com/refunc/refunc/pkg/utils/cmdutil"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/sharedcfg"
 	"github.com/refunc/refunc/pkg/utils/k8sutil"
+	"github.com/refunc/refunc/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -126,6 +127,10 @@ func NewCmd() *cobra.Command {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
+					klog.Infof("Refunc  Version: %s", version.Version)
+					klog.Infof("Agent   Version: %s", version.AgentVersion)
+					klog.Infof("Loader  Version: %s", version.LoaderVersion)
+					klog.Infof("Sidecar Version: %s", version.SidecarVersion)
 					sc.Run(stopC)
 				}()
 

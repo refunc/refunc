@@ -12,6 +12,8 @@ const (
 	MaxPayloadSize = 1 << 20 // 1 MB
 	// MaxTimeout is max execution time enfoced by runtime
 	MaxTimeout = 4 * time.Hour
+	// DefaultJobTimeout is hard coded max timeout for a task, same as AWS
+	DefaultJobTimeout = 9 * time.Minute
 )
 
 // MessageType alias type for event's type
@@ -58,10 +60,10 @@ type InvokeResponse struct {
 
 // ErrorMessage wraps error information during a invocation
 type ErrorMessage struct {
-	Message    string       `json:"errorMessage"`
-	Type       string       `json:"errorType,omitempty"`
-	StackTrace []StackFrame `json:"stackTrace,omitempty"`
-	Fatal      bool         `json:"fatal"`
+	Message    string        `json:"errorMessage"`
+	Type       string        `json:"errorType,omitempty"`
+	StackTrace []interface{} `json:"stackTrace,omitempty"`
+	Fatal      bool          `json:"fatal"`
 }
 
 // StackFrame is frame information of a exception

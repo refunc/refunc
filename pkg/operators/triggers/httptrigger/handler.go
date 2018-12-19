@@ -233,10 +233,12 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isstream b
 			rw.WriteHeader(http.StatusInternalServerError)
 			return rw.Write(append([]byte(err.Error()), messages.TokenCRLF...))
 		}
-		if ct == "" {
+		if ct == "" && func() bool {
+			var js json.RawMessage
+			return json.Unmarshal(bts, &js) == nil
+		}() {
 			ct = jsonCT
 		}
-		bts = msg.Payload
 	}
 	if ct == "" {
 		ct = http.DetectContentType(bts)

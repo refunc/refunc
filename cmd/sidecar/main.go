@@ -11,7 +11,7 @@ import (
 	"github.com/refunc/refunc/pkg/runtime/lambda/loader"
 	"github.com/refunc/refunc/pkg/sidecar"
 	"github.com/refunc/refunc/pkg/sidecar/fsloader"
-	"github.com/refunc/refunc/pkg/sidecar/natscar"
+	"github.com/refunc/refunc/pkg/transport/natsbased/natscar"
 	"github.com/refunc/refunc/pkg/utils/cmdutil"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/flagtools"
 	"github.com/spf13/pflag"

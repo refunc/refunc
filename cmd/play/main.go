@@ -11,6 +11,7 @@ import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/refunc/refunc/pkg/controllers/funcinst"
 	"github.com/refunc/refunc/pkg/controllers/xenv"
+	"github.com/refunc/refunc/pkg/credsyncer"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/operators/funcinsts"
 	"github.com/refunc/refunc/pkg/operators/triggers/crontrigger"
@@ -152,6 +153,7 @@ func startCmd() *cobra.Command {
 					cfg.RefuncClient(),
 					cfg.RefuncInformers(),
 					natsbased.NewHandler(natsConn),
+					credsyncer.NewSimpleProvider(),
 				)
 				if err != nil {
 					klog.Fatalf("Failed to create operator, %v", err)
@@ -198,6 +200,10 @@ func startCmd() *cobra.Command {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				klog.Infof("Refunc  Version: %s", version.Version)
+				klog.Infof("Agent   Version: %s", version.AgentVersion)
+				klog.Infof("Loader  Version: %s", version.LoaderVersion)
+				klog.Infof("Sidecar Version: %s", version.SidecarVersion)
 				sc.Run(ctx.Done())
 			}()
 

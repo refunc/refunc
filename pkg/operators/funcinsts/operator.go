@@ -17,6 +17,7 @@ import (
 	observer "github.com/refunc/go-observer"
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	"github.com/refunc/refunc/pkg/builtins"
+	"github.com/refunc/refunc/pkg/credsyncer"
 	refunc "github.com/refunc/refunc/pkg/generated/clientset/versioned"
 	informers "github.com/refunc/refunc/pkg/generated/informers/externalversions"
 	rflistersv1 "github.com/refunc/refunc/pkg/generated/listers/refunc/v1beta3"
@@ -38,6 +39,8 @@ type Operator struct {
 
 	// trasnport handler
 	handler transport.OperatorHandler
+
+	credsP credsyncer.Provider
 
 	// internal
 	endpoint2Trigger sync.Map
@@ -63,6 +66,7 @@ func NewOperator(
 	rclient refunc.Interface,
 	rfInformers informers.SharedInformerFactory,
 	handler transport.OperatorHandler,
+	creds credsyncer.Provider,
 ) (*Operator, error) {
 	base, err := operators.NewBaseOperator(cfg, nil, rclient, rfInformers)
 	if err != nil {
@@ -73,6 +77,7 @@ func NewOperator(
 		BaseOperator:   base,
 		FuncinstLister: rfInformers.Refunc().V1beta3().Funcinsts().Lister(),
 		handler:        handler,
+		credsP:         creds,
 		tappings:       observer.NewProperty(nil),
 	}
 	r.WantedInformers = append(r.WantedInformers, r.RefuncInformers.Refunc().V1beta3().Funcinsts().Informer().HasSynced)
@@ -107,19 +112,19 @@ func (r *Operator) Run(stopC <-chan struct{}) {
 
 	// start funcinst operator
 	if !r.BaseOperator.WaitForCacheSync(stopC) {
-		klog.Error("(eventgateway) cannot fully sync resources")
+		klog.Error("(funcinsts) cannot fully sync resources")
 		return
 	}
 
 	klog.Info("(fnio) staring tapping service")
 	go r.tappingFuncinsts(stopC)
 
-	klog.Infof("(eventgateway) setup and listen on endpoints, with builtins: %v", builtins.ListBuiltins())
+	klog.Infof("(funcinsts) setup and listen on endpoints, with builtins: %v", builtins.ListBuiltins())
 
 	go r.handler.Start(r.ctx, r)
 
 	<-stopC
-	klog.Info("(eventgateway) shuting down events operator")
+	klog.Info("(funcinsts) shuting down events operator")
 }
 
 func (r *Operator) handleFuncdefAdd(o interface{}) {
@@ -127,14 +132,14 @@ func (r *Operator) handleFuncdefAdd(o interface{}) {
 
 	trs, err := r.getTriggerLister()(labels.Everything())
 	if err != nil {
-		klog.Errorf("(eventgateway) failed to list triggers, %v", err)
+		klog.Errorf("(funcinsts) failed to list triggers, %v", err)
 	}
 	for _, trigger := range trs {
 		if trigger.Spec.Type == Type && trigger.Spec.FuncName == fndef.Name {
 			return
 		}
 	}
-	klog.V(3).Infof("(eventgateway) auto generate trigger for %s", k8sKey(fndef))
+	klog.V(3).Infof("(funcinsts) auto generate trigger for %s", k8sKey(fndef))
 	// not found we should create
 	trigger := &rfv1beta3.Trigger{
 		ObjectMeta: metav1.ObjectMeta{
@@ -160,7 +165,7 @@ func (r *Operator) handleFuncdefAdd(o interface{}) {
 		return err
 	})
 	if err != nil {
-		klog.Errorf("(eventgateway) failed to generate trigger for %s, %v", k8sKey(fndef), err)
+		klog.Errorf("(funcinsts) failed to generate trigger for %s, %v", k8sKey(fndef), err)
 	}
 }
 
@@ -173,7 +178,7 @@ func (r *Operator) handleFuncdefDelete(o interface{}) {
 
 	trs, err := r.getTriggerLister()(labels.Everything())
 	if err != nil {
-		klog.Errorf("(eventgateway) failed to list triggers, %v", err)
+		klog.Errorf("(funcinsts) failed to list triggers, %v", err)
 	}
 
 	// tirggers may point to same func with different aliases
@@ -190,7 +195,7 @@ func (r *Operator) handleFuncdefDelete(o interface{}) {
 	// check if it is created by system
 	for _, trigger := range triggers {
 		if val, ok := trigger.Labels[labelAutoCreated]; ok && val == "true" {
-			klog.V(3).Infof("(eventgateway) delete auto generated trigger %s", k8sKey(trigger))
+			klog.V(3).Infof("(funcinsts) delete auto generated trigger %s", k8sKey(trigger))
 			err := retryOnceOnError(func() error {
 				err := r.RefuncClient.RefuncV1beta3().Triggers(trigger.Namespace).Delete(trigger.Name, k8sutil.CascadeDeleteOptions(0))
 				if apierrors.IsNotFound(err) {
@@ -199,7 +204,7 @@ func (r *Operator) handleFuncdefDelete(o interface{}) {
 				return err
 			})
 			if err != nil {
-				klog.Errorf("(eventgateway) failed to delete trigger %s for %s, %v", k8sKey(trigger), k8sKey(fndef), err)
+				klog.Errorf("(funcinsts) failed to delete trigger %s for %s, %v", k8sKey(trigger), k8sKey(fndef), err)
 			}
 		}
 	}
@@ -232,7 +237,7 @@ func (r *Operator) handleTriggerDelete(o interface{}) {
 
 	key := r.endpointForTrigger(trigger)
 	if _, ok := r.endpoint2Trigger.Load(key); ok {
-		klog.V(3).Infof("(eventgateway) delete trigger %s", key)
+		klog.V(3).Infof("(funcinsts) delete trigger %s", key)
 		r.endpoint2Trigger.Delete(key)
 	}
 }

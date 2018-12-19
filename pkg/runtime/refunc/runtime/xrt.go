@@ -18,14 +18,13 @@ import (
 	"text/template"
 	"time"
 
-	"golang.org/x/crypto/ssh"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+
+	"golang.org/x/crypto/ssh"
 
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	"github.com/refunc/refunc/pkg/env"
@@ -33,6 +32,7 @@ import (
 	"github.com/refunc/refunc/pkg/runtime/refunc/loader"
 	"github.com/refunc/refunc/pkg/utils/rfutil"
 	"github.com/refunc/refunc/pkg/utils/rtutil"
+	"github.com/refunc/refunc/pkg/version"
 )
 
 type v1 struct {
@@ -154,7 +154,7 @@ func (br *v1) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment {
 
 // InitPod initialize given pod
 // Note: one should not assume that the workDir still persist after InitPod being called
-func (br *v1) InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, fndef *rfv1beta3.Funcdef, xenv *rfv1beta3.Xenv, rcfg rest.Config, workDir string) error {
+func (br *v1) InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, fndef *rfv1beta3.Funcdef, xenv *rfv1beta3.Xenv, workDir string) error {
 	name := rfutil.ExecutorPodName(pod)
 	var (
 		t0 = time.Now()
@@ -267,16 +267,19 @@ func (br *v1) scanOutput(prefix string, r io.Reader) {
 
 var (
 	// InitContainerImage default init container image
-	// the InitContainerImage can be override by env REFUNC_AGENT_INIT_CONTAINER
-	InitContainerImage = "refunc/agent:latest"
+	// the InitContainerImage can be override by env REFUNC_AGENT_INIT_IMAGE
+	InitContainerImage = "refunc/agent:$latest"
 	iciCheckEnvOnce    sync.Once // init container check
+
+	historyLimits int32 = 3
 )
 
 func initContainerImage() string {
 	iciCheckEnvOnce.Do(func() {
-		if ci := os.Getenv("REFUNC_AGENT_INIT_CONTAINER"); ci != "" {
+		if ci := os.Getenv("REFUNC_AGENT_INIT_IMAGE"); ci != "" {
 			InitContainerImage = ci
 		}
+		InitContainerImage = strings.Replace(InitContainerImage, "$latest", version.AgentVersion, -1)
 	})
 	return InitContainerImage
 }
@@ -337,11 +340,11 @@ var (
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("200m"),
-				corev1.ResourceMemory: resource.MustParse("20Mi"),
+				corev1.ResourceMemory: resource.MustParse("10Mi"),
 			},
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("100m"),
-				corev1.ResourceMemory: resource.MustParse("10Mi"),
+				corev1.ResourceMemory: resource.MustParse("5Mi"),
 			},
 		},
 	}

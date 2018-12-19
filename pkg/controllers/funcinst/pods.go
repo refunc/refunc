@@ -121,7 +121,7 @@ func (rc *Controller) initRuntimePod(fni *rfv1beta3.Funcinst, fndef *rfv1beta3.F
 	defer os.RemoveAll(dir)
 
 	klog.V(4).Infof("(tc) create tmp working dir %q for runner", dir)
-	if err := rt.InitPod(pod, fni, fndef, xenv, rc.cfg, dir); err != nil {
+	if err := rt.InitPod(pod, fni, fndef, xenv, dir); err != nil {
 		return err
 	}
 

@@ -8,7 +8,7 @@ import (
 	"k8s.io/klog"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/refunc/refunc/pkg/builtins/verifier"
+	"github.com/refunc/refunc/pkg/credsyncer/verifier"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/utils/cmdutil"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/pflagenv/wrapcobra"

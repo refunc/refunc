@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/refunc/refunc/pkg/utils"
 
 	"k8s.io/klog"
 
@@ -34,7 +38,7 @@ type engine struct {
 	conn *nats.Conn
 }
 
-type taskDoneFunc func() (expired bool)
+type taskDoneFunc func() (reply string, expired bool)
 
 // NewEngine returns a nats based engine
 func NewEngine() sidecar.Engine {
@@ -54,14 +58,45 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 		// logEndpoint    = fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"]
 	)
 
-	klog.V(2).Infof("(natscar) cry endpoint: %s", cryEndpoint)
+	eng.fn = fn
+
 	klog.V(2).Infof("(natscar) svc endpoint: %s", svcEndpoint)
+
+	// apply envs
+	for k, v := range fn.Spec.Runtime.Envs {
+		if v != "" {
+			// try to expand env
+			if strings.HasPrefix(v, "$") {
+				v = os.ExpandEnv(v)
+			}
+			os.Setenv(k, v)
+		}
+	}
+
+	os.Setenv("REFUNC_ENV", "cluster")
+	os.Setenv("REFUNC_NAMESPACE", fn.Namespace)
+	os.Setenv("REFUNC_NAME", fn.Name)
+	os.Setenv("REFUNC_HASH", fn.Spec.Hash)
+
+	if fn.Spec.Runtime.Credentials.Token != "" {
+		os.Setenv("REFUNC_TOKEN", fn.Spec.Runtime.Credentials.Token)
+	}
+
+	os.Setenv("REFUNC_ACCESS_KEY", fn.Spec.Runtime.Credentials.AccessKey)
+	os.Setenv("REFUNC_SECRET_KEY", fn.Spec.Runtime.Credentials.SecretKey)
+
+	os.Setenv("REFUNC_MINIO_SCOPE", fn.Spec.Runtime.Permissions.Scope)
+	os.Setenv("REFUNC_MAX_TIMEOUT", fmt.Sprintf("%d", fn.Spec.Runtime.Timeout))
+
+	// reload envs
+	env.RefreshEnvs()
 
 	// connect to nats
 	conn, err := env.NewNatsConn(nats.Name(fn.Namespace + "/" + fn.Name))
 	if err != nil {
 		return fmt.Errorf("failed to connect to nats %s, %v", env.GlobalNATSEndpoint, err)
 	}
+	eng.conn = conn
 
 	eng.ctx, eng.cancel = context.WithCancel(ctx)
 
@@ -71,39 +106,52 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 			klog.Errorf("(natscar) got invalid request, empty reply")
 			return
 		}
-		reply := msg.Reply
+		msgReply := msg.Reply
 
 		// verify request
 		var req *messages.InvokeRequest
 		err := json.Unmarshal(msg.Data, &req)
 		if err != nil {
-			eng.replyError(reply, err)
+			eng.replyError(msgReply, err)
 			return
 		}
 
+		var (
+			reqCtx context.Context
+			cancel context.CancelFunc
+		)
+
+		// support potential long running task
+		if req.Deadline.IsZero() {
+			reqCtx, cancel = eng.ctx, func() {}
+		} else {
+			reqCtx, cancel = context.WithDeadline(eng.ctx, req.Deadline)
+		}
+
 		// write reply as rquest id
-		req.RequestID = reply
+		rid := utils.GenID([]byte(msgReply))
+		req.RequestID = rid
 
 		// create session
-		ctx, cancel := context.WithDeadline(eng.ctx, req.Deadline)
-
 		var once sync.Once
-		doneFunc := func() (expired bool) {
-			finished := ctx.Err() != nil
+		doneFunc := taskDoneFunc(func() (reply string, expired bool) {
+			finished := reqCtx.Err() != nil
 			once.Do(func() {
 				// cancel task & cleanup
 				cancel()
-				eng.sessions.Delete(reply)
+				eng.sessions.Delete(rid)
 			})
-			return finished
+			return msgReply, finished
+		})
+
+		eng.sessions.Store(req.RequestID, doneFunc)
+
+		if !req.Deadline.IsZero() {
+			go func() {
+				<-reqCtx.Done()
+				doneFunc()
+			}()
 		}
-
-		eng.sessions.Store(reply, doneFunc)
-
-		go func() {
-			<-ctx.Done()
-			doneFunc()
-		}()
 
 		// enqueue
 		eng.actions.Update(req)
@@ -128,6 +176,9 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 
 	// start ioloop
 	go func() {
+		defer klog.V(2).Infof("(natscar) %s exited", fn.Name)
+		defer conn.Close()
+		defer conn.Flush()
 		defer sub.Unsubscribe()
 		defer crySubs.Unsubscribe()
 
@@ -173,10 +224,12 @@ func (eng *engine) InvokeRequest() *messages.InvokeRequest {
 func (eng *engine) SetResult(rid string, body []byte, err error) error {
 	if v, ok := eng.sessions.Load(rid); ok {
 		doneFunc := v.(taskDoneFunc)
-		if expired := doneFunc(); expired {
+		reply, expired := doneFunc()
+		if expired {
+			klog.Warningf("(natscar) request expired %q", rid)
 			return invalidRequestIDErr(rid)
 		}
-		eng.publish(rid, messages.MustFromObject(&messages.Action{
+		eng.publish(reply, messages.MustFromObject(&messages.Action{
 			Type: messages.Response,
 			Payload: messages.MustFromObject(&messages.InvokeResponse{
 				Payload: body,
@@ -185,6 +238,7 @@ func (eng *engine) SetResult(rid string, body []byte, err error) error {
 		}))
 		return nil
 	}
+	klog.Warningf("(natscar) cannot find request %q", rid)
 	return invalidRequestIDErr(rid)
 }
 
@@ -194,7 +248,7 @@ func (eng *engine) ReportInitError(err error) {
 
 func (eng *engine) ReportReady() {
 	// explicity send cry message to notify that we'r ready
-	eng.publish(eng.fn.Spec.Runtime.Envs["REFUNC_CRY_SVC_ENDPOINT"], nil)
+	eng.publish(eng.fn.Spec.Runtime.Envs["REFUNC_CRY_ENDPOINT"], nil)
 }
 
 func (eng *engine) ReportExiting() {

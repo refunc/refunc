@@ -558,9 +558,9 @@ func (in *XenvSpec) DeepCopyInto(out *XenvSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.ExtraJSON != nil {
-		in, out := &in.ExtraJSON, &out.ExtraJSON
-		*out = make([]byte, len(*in))
+	if in.Extra != nil {
+		in, out := &in.Extra, &out.Extra
+		*out = make(json.RawMessage, len(*in))
 		copy(*out, *in)
 	}
 	return
