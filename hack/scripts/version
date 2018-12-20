@@ -1,7 +1,5 @@
 #!/bin/bash
 
-export NAMESPACE=${CI_PROJECT_NAMESPACE:="refunc"}
-
 source ./hack/scripts/common
 
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
@@ -35,10 +33,11 @@ else
 fi
 
 IMAGE_REPO=${IMAGE_REPO:-refunc}
-IMAGE_PREFIX="${IMAGE_PREFIX}"
 
-export REFUNC_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}refunc:${REFUNC_VERSION}"
-export AGENT_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}agent:${AGENT_VERSION}"
-export LOADER_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}loader:${LOADER_VERSION}"
-export SIDECAR_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}sidecar:${SIDECAR_VERSION}"
-export CREDSYNCER_IMAGE="${IMAGE_REPO}/${IMAGE_PREFIX}credsyncer:${CREDSYNCER_VERSION}"
+export REGISTRY_PREFIX="${IMAGE_REPO}/${IMAGE_PREFIX}"
+
+export REFUNC_IMAGE="${REGISTRY_PREFIX}refunc:${REFUNC_VERSION}"
+export AGENT_IMAGE="${REGISTRY_PREFIX}agent:${AGENT_VERSION}"
+export LOADER_IMAGE="${REGISTRY_PREFIX}loader:${LOADER_VERSION}"
+export SIDECAR_IMAGE="${REGISTRY_PREFIX}sidecar:${SIDECAR_VERSION}"
+export CREDSYNCER_IMAGE="${REGISTRY_PREFIX}credsyncer:${CREDSYNCER_VERSION}"
