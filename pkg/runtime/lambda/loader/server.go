@@ -88,6 +88,7 @@ func (ld *simpleLoader) exec(fn *types.Function) error {
 					continue
 				}
 			}
+			defer res.Body.Close()
 
 			body, err := ioutil.ReadAll(res.Body)
 			if err != nil || string(body) != "pong" {

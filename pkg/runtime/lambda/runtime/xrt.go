@@ -180,6 +180,7 @@ func (rt *lambda) InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, fndef *
 	if err != nil {
 		return err
 	}
+	defer rsp.Body.Close()
 
 	if rsp.StatusCode >= 500 {
 		bts, err := ioutil.ReadAll(rsp.Body)
