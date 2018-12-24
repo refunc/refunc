@@ -2,6 +2,8 @@
 
 Refunc is a painless serverless platform that runs aws lambda runtimes(via lambci images) on k8s
 
+![refunc arch](https://user-images.githubusercontent.com/354668/50403557-7a70f980-07da-11e9-905d-80c407a1cb18.png)
+
 ## Quick Start
 
 Before start, you need a k8s runs on somewhere, [minikube](https://github.com/kubernetes/minikube) is pretty enough, [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) with kubernetes enabled is recommended if your'd like to try on macOS.
