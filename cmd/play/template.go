@@ -55,6 +55,24 @@ data:
 
     write_deadline: "2s"
 
+  nginx.conf: |
+    server {
+        listen 80;
+        access_log /dev/stdout;
+        error_log /dev/stderr info;
+
+        ignore_invalid_headers off;
+        proxy_buffering off;
+
+        location ^~ / {
+          proxy_set_header Host $http_host;
+          proxy_pass http://s3.refunc-play;
+        }
+        location ^~ /2015-03-31/ {
+          proxy_pass http://127.0.0.1:4574;
+        }
+    }
+
 {{- if .RBAC }}
 ---
 
@@ -209,6 +227,26 @@ spec:
     protocol: TCP
     port: 80
     targetPort: 7788
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: aws-api
+  namespace: {{ .Namespace }}
+  labels:
+    refunc.io/res: gateway
+    refunc.io/name: aws-api
+spec:
+  selector:
+    refunc.io/res: gateway
+    refunc.io/name: aws-api
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
 
 ---
 
@@ -387,4 +425,94 @@ spec:
           items:
           - key: nats.conf
             path: nats.conf
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: aws-api-gw
+  namespace: {{ .Namespace }}
+  labels:
+    refunc.io/res: gateway
+    refunc.io/name: aws-api
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        refunc.io/res: gateway
+        refunc.io/name: aws-api
+    spec:
+      containers:
+      - name: api
+        image: refunc/aws-api-gw
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REFUNC_ENV
+          value: cluster
+        - name: REFUNC_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: REFUNC_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        # the following are needed by runtime
+        - name: NATS_ENDPOINT
+          value: "nats.{{.Namespace}}:4222"
+        - name: MINIO_ENDPOINT
+          value: "http://s3.{{.Namespace}}"
+        - name: MINIO_PUBLIC_ENDPOINT
+          value: "http://s3.{{.Namespace}}"
+        - name: MINIO_BUCKET
+          value: refunc
+        - name: MINIO_SCOPE
+          value: funcs
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: refunc
+              key: minio-access-key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: refunc
+              key: minio-secret-key
+        - name: ACCESS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: refunc
+              key: access-token
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: refunc
+              key: minio-access-key
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: refunc
+              key: minio-secret-key
+        - name: S3_ENDPOINT
+          value: "http://s3.{{.Namespace}}"
+        - name: S3_REGION
+          value: us-east-1
+      - name: nginx
+        image: nginx:1.15
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nginx/conf.d
+        ports:
+        - containerPort: 80
+          name: http
+      volumes:
+      - name: config-volume
+        configMap:
+          name: refunc
+          items:
+          - key: nginx.conf
+            path: default.conf
 `))
