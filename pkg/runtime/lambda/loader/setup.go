@@ -3,7 +3,6 @@ package loader
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -61,7 +60,12 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 		case strings.HasPrefix(fn.Spec.Body, "base64://"):
 			filename, err = saveBase64(fn.Spec.Body, folder)
 		default:
-			err = errors.New(`loader: Only support "http(s)//" or "base64//"`)
+			err = fmt.Errorf(`loader: Only support "http(s)//" or "base64//, got "%s"`, func() string {
+				if len(fn.Spec.Body) > 10 {
+					return fn.Spec.Body[:9]
+				}
+				return fn.Spec.Body
+			}())
 		}
 		if err != nil {
 			return

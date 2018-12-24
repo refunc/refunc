@@ -62,12 +62,26 @@ func ExecutorLabels(funcinst *rfv1beta3.Funcinst) map[string]string {
 }
 
 // FuncinstLabels infers a set of labels for corresponding funcinst
-func FuncinstLabels(refunc *rfv1beta3.Funcdef) map[string]string {
-	return map[string]string{
+func FuncinstLabels(fndef *rfv1beta3.Funcdef) map[string]string {
+	labels := map[string]string{
 		rfv1beta3.LabelResType: "funcinst",
-		rfv1beta3.LabelName:    refunc.Name,
-		rfv1beta3.LabelHash:    refunc.Spec.Hash,
+		rfv1beta3.LabelName:    fndef.Name,
+		rfv1beta3.LabelHash:    GetHash(fndef),
 	}
+	if name, ok := fndef.Labels[rfv1beta3.LabelLambdaName]; ok {
+		labels[rfv1beta3.LabelLambdaName] = name
+	}
+	if version, ok := fndef.Labels[rfv1beta3.LabelLambdaVersion]; ok {
+		labels[rfv1beta3.LabelLambdaVersion] = version
+	}
+	return labels
+}
+
+func GetHash(fndef *rfv1beta3.Funcdef) string {
+	if len(fndef.Spec.Hash) >= 63 {
+		return fndef.Spec.Hash[:32]
+	}
+	return fndef.Spec.Hash
 }
 
 // XenvLabels infers a set of labels for corresponding deployment

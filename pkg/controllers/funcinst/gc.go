@@ -59,6 +59,9 @@ func (rc *Controller) collectGarbadge() {
 			if err != nil {
 				klog.Errorf("(tc:gc) %q missing funcdef", key)
 			}
+			if fndef == nil {
+				return
+			}
 			timeoutDur := time.Duration(fndef.Spec.Runtime.Timeout) * time.Second
 			if timeoutDur == 0 {
 				timeoutDur = 60 * time.Second

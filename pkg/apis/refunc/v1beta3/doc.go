@@ -17,6 +17,9 @@ const (
 	LabelHash    = "refunc.io/hash"
 	LabelUID     = "refunc.io/uid"
 
+	LabelLambdaVersion = "lambda.refunc.io/version"
+	LabelLambdaName    = "lambda.refunc.io/name"
+
 	LabelRunner        = "refunc.io/runner"
 	LabelRunnerIsReady = "refunc.io/runner-ready"
 

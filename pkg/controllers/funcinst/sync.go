@@ -72,7 +72,7 @@ func (rc *Controller) sync(key string) error {
 	}
 	// check version
 	oldHash := fni.Labels[rfv1beta3.LabelHash]
-	newHash := fndef.Spec.Hash
+	newHash := rfutil.GetHash(fndef)
 	if oldHash != newHash {
 		klog.V(3).Infof("(tc) %s funcdef hash changed %s -> %s", key, oldHash, newHash)
 		_, err = rc.markFuncinstInactive(fni, "FuncdefHashChanged", fmt.Sprintf("Funcdef %q hash is changed", fndefRef.Name))
