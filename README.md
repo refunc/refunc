@@ -72,6 +72,6 @@ curl -v  http://127.0.0.1:7788/refunc-play/python37-function
 
 ## User interface
 
-Internally we use [Rancher](https://rancher.com) to build our PaaS and other internal services, and currently there is a simple management [UI](https://github.com/refunc/refunc-ui) forked from [ranher/ui](https://github.com/rancher/ui) which is backed with our [Rancher API](https://github.com/rancher/api-spec) compatible [server](https://github.com/refunc/refunc-rancher)
+Internally we use [Rancher](https://rancher.com) to build our PaaS and other internal services, and currently there is a simple management [UI](https://github.com/refunc/refunc-ui) forked from [rancher/ui](https://github.com/rancher/ui) which is backed with our [Rancher API](https://github.com/rancher/api-spec) compatible [server](https://github.com/refunc/refunc-rancher)
 
 ![functions.png](https://user-images.githubusercontent.com/354668/44694551-b13f3900-aaa0-11e8-8a9a-a19d562ec8d1.png "Functions page")

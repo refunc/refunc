@@ -84,6 +84,13 @@ func GetHash(fndef *rfv1beta3.Funcdef) string {
 	return fndef.Spec.Hash
 }
 
+func GetFunctionVersion(fndef *rfv1beta3.Funcdef) string {
+	if version, ok := fndef.Labels[rfv1beta3.LabelLambdaVersion]; ok {
+		return version
+	}
+	return GetHash(fndef)
+}
+
 // XenvLabels infers a set of labels for corresponding deployment
 func XenvLabels(xenv *rfv1beta3.Xenv) map[string]string {
 	return map[string]string{

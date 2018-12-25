@@ -89,18 +89,14 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment
 		// FIXME(bin)
 		corev1.EnvVar{
 			Name:  "REFUNC_APP",
-			Value: "loader",
+			Value: "aws-lambda",
 		},
 	)
 
-	if len(container.Resources.Limits) == 0 && len(container.Resources.Requests) == 0 {
-		klog.V(4).Info("(loader) using default resources' limits and requests")
-		container.Resources = *defaultResource.DeepCopy()
-	}
+	// hpa requires those fields to be set
 	if len(container.Resources.Requests) == 0 {
 		container.Resources.Requests = defaultResource.Requests.DeepCopy()
 	} else {
-		// hpa requires those fields to be set
 		if _, has := container.Resources.Requests[corev1.ResourceCPU]; !has {
 			container.Resources.Requests[corev1.ResourceCPU] = defaultResource.Requests[corev1.ResourceCPU].DeepCopy()
 		}
@@ -110,6 +106,13 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment
 	}
 	if len(container.Resources.Limits) == 0 {
 		container.Resources.Limits = defaultResource.Limits.DeepCopy()
+	} else {
+		if _, has := container.Resources.Limits[corev1.ResourceCPU]; !has {
+			container.Resources.Limits[corev1.ResourceCPU] = defaultResource.Limits[corev1.ResourceCPU].DeepCopy()
+		}
+		if _, has := container.Resources.Limits[corev1.ResourceMemory]; !has {
+			container.Resources.Limits[corev1.ResourceMemory] = defaultResource.Limits[corev1.ResourceMemory].DeepCopy()
+		}
 	}
 
 	// ensure container user is root
@@ -335,9 +338,9 @@ func (rt *lambda) genFunction(pod *corev1.Pod, fninst *rfv1beta3.Funcinst, fndef
 	fn.Spec.Runtime.Envs["AWS_SECRET_ACCESS_KEY"] = fninst.Spec.Runtime.Credentials.SecretKey
 	fn.Spec.Runtime.Envs["AWS_SESSION_TOKEN"] = fninst.Spec.Runtime.Credentials.Token
 	fn.Spec.Runtime.Envs["AWS_LAMBDA_FUNCTION_NAME"] = fndef.Name
-	fn.Spec.Runtime.Envs["AWS_LAMBDA_FUNCTION_VERSION"] = fndef.Spec.Hash
+	fn.Spec.Runtime.Envs["AWS_LAMBDA_FUNCTION_VERSION"] = rfutil.GetFunctionVersion(fndef)
 	fn.Spec.Runtime.Envs["AWS_LAMBDA_LOG_GROUP_NAME"] = "/aws/lambda/" + fndef.Name
-	fn.Spec.Runtime.Envs["AWS_LAMBDA_LOG_STREAM_NAME"] = logStreamName(fndef.Spec.Hash)
+	fn.Spec.Runtime.Envs["AWS_LAMBDA_LOG_STREAM_NAME"] = logStreamName(rfutil.GetFunctionVersion(fndef))
 	// parse memory size
 	mem, ok := pod.Spec.Containers[0].Resources.Limits.Memory().AsInt64()
 	if !ok {
