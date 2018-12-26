@@ -1,23 +1,25 @@
 # Refunc
 
-Refunc is a painless serverless platform to run [AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html) on k8s
+Refunc is a painless serverless platform to run [AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html) on [Kubernetes](https://kubernetes.io).
 
-![refunc arch](https://user-images.githubusercontent.com/354668/50409374-188daf80-082d-11e9-9a9b-77407cd196ed.png)
+![Refunc Architecture](https://user-images.githubusercontent.com/354668/50409374-188daf80-082d-11e9-9a9b-77407cd196ed.png)
 
 ## Features
 
-* Easy of use - ebrace the big ecosystem thru AWS Lambda compatible API and runtimes
-* Portable - run everywhere that has kubernetes
-* Scale to zero - auto scale from zero to many and vice verse
-* Extensible - runtime compatible layer(lamdba and other clouds' fucntion), transport layer(nats based for now)
+* Easy of use - Embrace the serverless ecosystem with an AWS Lambda compatible API and runtimes
+* Portable - Run everywhere that has Kubernetes
+* Scale from zero - Autoscale from zero-to-many and vice versa
+* Extensible - Runtime compatibility layer (lambda and other clouds' function), transport layer ([NATS](https://nats.io) based for now)
 
 ## Quick Start
 
-Before start, you need a k8s runs on somewhere, [minikube](https://github.com/kubernetes/minikube) is pretty enough, [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) with kubernetes enabled is recommended if your'd like to try on macOS.
+Before starting, you need a Kubernetes cluster. You can use [minikube](https://github.com/kubernetes/minikube) to run a minimal Kubernetes cluster locally.
+
+If you'd like to run on macOS, [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) with Kubernetes enabled is recommended.
 
 ### Install Refunc
 
-Install Refunc play(which is a mini setup of refunc) using the following commands:
+Install `refunc-play`, a minimal setup of Refunc, using the following commands:
 
 ```shell
 # This will create namespace `refunc-play` and deploy components in it
@@ -28,27 +30,27 @@ kubectl create -n refunc-play -f \
 https://github.com/refunc/lambda-python3.7-example/releases/download/v0.0.2/xenv.yaml
 ```
 
-Here we use python3.7 as an example, currently refunc support all [aws provided runtimes](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-custom.html) as well as some converted, check [refunc/lambda-runtimes](https://github.com/refunc/lambda-runtimes) to learn more.
+Here we use the python3.7 runtime as an example. Currently Refunc supports all [AWS provided runtimes](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-custom.html) as well as some converted runtimes, check [refunc/lambda-runtimes](https://github.com/refunc/lambda-runtimes) to learn more.
 
-### The aws way
+### The AWS Way
 
-Refunc using a AWS api compatible [gateway](https://github.com/refunc/aws-api-gw) to provide Lambda and S3 services,
-this make it possible to use asw cli to managment functions directly.
+Refunc uses an AWS API compatible [gateway](https://github.com/refunc/aws-api-gw) to provide Lambda and S3 services,
+which makes it possible to use the AWS CLI to manage functions locally.
 
-Brefore start, we need forward gateway to local
+Before starting, we need to forward the gateway to your localhost:
 
 ```shell
 kubectl port-forward deployment/aws-api-gw 9000:80 -n refunc-play
 ```
 
-Download prebuild [Function](https://github.com/refunc/lambda-python3.7-example) for convenience
+Download the pre-built [function](https://github.com/refunc/lambda-python3.7-example) for convenience:
 
 ```shell
 cd /tmp
 wget https://github.com/refunc/lambda-python3.7-example/releases/download/v0.0.1/lambda.zip
 ```
 
-#### Create python3.7 funtion
+#### Create Function
 
 ```shell
 aws --endpoint-url=http://127.0.0.1:9000 \
@@ -59,36 +61,36 @@ lambda create-function --function-name localtest \
 --role arn:aws:iam::XXXXXXXXXXXXX:role/your_lambda_execution_role
 ```
 
-#### Invoke
+#### Invoke Function
 
 ```shell
 aws --endpoint-url=http://127.0.0.1:9000 \
 lambda invoke --function-name localtest /tmp/output.json && cat /tmp/output.json
 ```
 
-### The refunc way
+### The Refunc Way
 
-Let's create a lambda function using runtime python3.7 with a http trigger:
+Let's create a Lambda function using the python3.7 runtime with an HTTP endpoint:
 
 ```shell
 kubectl create -n refunc-play -f https://github.com/refunc/lambda-python3.7-example/releases/download/v0.0.2/inone.yaml
 ```
 
-Forwarding refunc http gw to local:
+Forward the Refunc HTTP gateway to your localhost:
 
 ```shell
 kubectl port-forward deployment/refunc-play 7788:7788 -n refunc-play
 ```
 
-Now, it's OK to send a request to your function
+Now, it's OK to send a request to your function:
 
 ```shell
 curl -v  http://127.0.0.1:7788/refunc-play/python37-function
 ```
 
-## User interface
+## User Interface
 
-Internally we use [Rancher](https://rancher.com) to build our PaaS and other internal services, currently there is a simple management [UI](https://github.com/refunc/refunc-ui) forked from [rancher/ui](https://github.com/rancher/ui) which is backed by our [Rancher API](https://github.com/rancher/api-spec) compatible [server](https://github.com/refunc/refunc-rancher)
+Internally we use [Rancher](https://rancher.com) to build our PaaS and other internal services. Currently there is a simple management [UI](https://github.com/refunc/refunc-ui) forked from [rancher/ui](https://github.com/rancher/ui) which is backed by our [Rancher API](https://github.com/rancher/api-spec) compatible [server](https://github.com/refunc/refunc-rancher).
 
 ![functions.png](https://user-images.githubusercontent.com/354668/44694551-b13f3900-aaa0-11e8-8a9a-a19d562ec8d1.png "Functions page")
 
