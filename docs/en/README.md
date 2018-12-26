@@ -1,16 +1,21 @@
 ---
 home: true
-actionText: Get Started →
+actionText: Lean more →
 actionLink: /guide/
-footer: Apache License v2.0 Licensed | Copyright © 2017-Present Bin Zhao
+footer: Apache License v2.0 Licensed | Copyright © 2017-2019 Bin Zhao
 ---
 
-### Play in [Minikube](https://github.com/kubernetes/minikube)
+### Quick Start
 
-```bash
-curl -Ls https://bit.ly/2N7DdE1 | kubectl apply -f -
+```shell
+# install refunc play
+docker run --rm -it -e REFUNC_ENV=cluster refunc/refunc refunc play gen -n refunc-play | kubectl apply -f -
 ```
 
 ::: tip
-Can also run on [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) with kubernetes enabled
+For local play [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) with kubernetes enabled is recommened
 :::
+
+### Architecture Overview
+
+![refunc arch](https://user-images.githubusercontent.com/354668/50409374-188daf80-082d-11e9-9a9b-77407cd196ed.png)

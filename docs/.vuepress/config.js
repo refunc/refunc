@@ -20,22 +20,22 @@ module.exports = {
         '/': {
             lang: 'zh-CN',
             title: 'Refunc',
-            description: '基于Kubernetes的云函数平台'
+            description: '企业级无服务运行平台'
         },
         '/en/': {
             lang: 'en-US',
             title: 'Refunc',
-            description: 'A FaaS runs on kuberntes',
+            description: 'AWS Lambda in kubernetes, and more',
         },
     },
     themeConfig: {
         repo: 'refunc/refunc',
-        editLinks: false,
+        editLinks: true,
         docsDir: 'docs',
         locales: {
             '/': {
                 label: '简体中文',
-                selectText: '选择语言',
+                selectText: 'Languages',
                 editLinkText: '在 GitHub 上编辑此页',
                 lastUpdated: '上次更新',
                 nav: [
@@ -45,12 +45,16 @@ module.exports = {
                     },
                 ],
                 sidebar: {
-                    '/guide/': genSidebarConfig('指南')
+                    '/guide/': genSidebarConfig('指南', [
+                        '',
+                        'quickstart',
+                        'rfctl',
+                    ])
                 },
             },
             '/en/': {
                 label: 'English',
-                selectText: 'Languages',
+                selectText: '选择语言',
                 editLinkText: 'Edit this page on GitHub',
                 lastUpdated: 'Last Updated',
                 nav: [
@@ -60,23 +64,23 @@ module.exports = {
                     },
                 ],
                 sidebar: {
-                    '/en/guide/': genSidebarConfig('Guide')
+                    '/en/guide/': genSidebarConfig('Guide', [
+                        '',
+                        'quickstart',
+                        'concepts',
+                    ])
                 },
             },
         },
     },
 };
 
-function genSidebarConfig(title) {
+function genSidebarConfig(title, children) {
     return [
         {
             title,
+            children,
             collapsable: false,
-            children: [
-                '',
-                'quickstart',
-                'concepts',
-            ]
         }
     ]
 }
