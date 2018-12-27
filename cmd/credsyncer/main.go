@@ -11,11 +11,11 @@ import (
 
 	"k8s.io/klog"
 
-	"git.v87.us/pkg/util/flagtools"
 	"github.com/garyburd/redigo/redis"
 	"github.com/refunc/refunc/pkg/credsyncer"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/utils/cmdutil"
+	"github.com/refunc/refunc/pkg/utils/cmdutil/flagtools"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/sharedcfg"
 	"github.com/spf13/pflag"
 )

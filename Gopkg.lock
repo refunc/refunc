@@ -2,17 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
-  digest = "1:fd94f64e9fe4cbb118598fb33217e87d5c05fb926313f8d3929185f560b2080d"
-  name = "git.v87.us/pkg/util"
-  packages = [
-    "flagtools",
-    "pflagenv",
-  ]
-  pruneopts = "NT"
-  revision = "9d30f7f04c5460bdbdb2b3a323cba7b62245239d"
-
-[[projects]]
   digest = "1:d8ebbd207f3d3266d4423ce4860c9f3794956306ded6c7ba312ecc69cdfbf04c"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -926,7 +915,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "git.v87.us/pkg/util/flagtools",
     "github.com/allegro/bigcache",
     "github.com/dgrijalva/jwt-go",
     "github.com/fsnotify/fsnotify",
