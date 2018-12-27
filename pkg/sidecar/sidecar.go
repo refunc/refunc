@@ -2,6 +2,7 @@ package sidecar
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"k8s.io/klog"
@@ -61,6 +62,30 @@ func NewCar(engine Engine, loader Loader) *Sidecar {
 
 // Serve init sidecar waiting for function is ready and listens and serves at given address
 func (sc *Sidecar) Serve(ctx context.Context, address string) {
+	sc.start(ctx, func() (func(http.Handler) error, func(context.Context) error) {
+		server := &http.Server{}
+		return func(handler http.Handler) error {
+			klog.Infof("(sidecar) start car at %s", address)
+			server.Addr = address
+			server.Handler = handler
+			return server.ListenAndServe()
+		}, server.Shutdown
+	})
+}
+
+// ServeListener init sidecar waiting for function is ready and listens and serves at given listener
+func (sc *Sidecar) ServeListener(ctx context.Context, listener net.Listener) {
+	sc.start(ctx, func() (func(http.Handler) error, func(context.Context) error) {
+		server := &http.Server{}
+		return func(handler http.Handler) error {
+			klog.Info("(sidecar) start car using provided listener")
+			server.Handler = handler
+			return server.Serve(listener)
+		}, server.Shutdown
+	})
+}
+
+func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Handler) error, shutdown func(context.Context) error)) {
 	klog.V(2).Info("(sidecar) start waiting runtime config")
 	select {
 	case <-ctx.Done():
@@ -89,14 +114,10 @@ func (sc *Sidecar) Serve(ctx context.Context, address string) {
 	// handle proxy
 	handler = handlers.ProxyHeaders(handler)
 
-	server := &http.Server{
-		Addr:    address,
-		Handler: handler,
-	}
+	serve, shutdown := factory()
 
 	go func() {
-		klog.Infof("(sidecar) start car at %s", address)
-		if err := server.ListenAndServe(); err != nil {
+		if err := serve(handler); err != nil {
 			klog.Errorf("(sidecar) http exited with error, %v", err)
 		}
 	}()
@@ -107,5 +128,5 @@ func (sc *Sidecar) Serve(ctx context.Context, address string) {
 
 	sc.eng.ReportExiting()
 
-	server.Shutdown(ctx)
+	shutdown(ctx)
 }
