@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -48,6 +49,8 @@ func NewEngine() sidecar.Engine {
 	eng.stream = eng.actions.Observe()
 	return eng
 }
+
+func (eng *engine) Name() string { return "nats" }
 
 func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 	var (
@@ -256,6 +259,10 @@ func (eng *engine) ReportExiting() {
 	if eng.cancel != nil {
 		eng.cancel()
 	}
+}
+
+func (eng *engine) Services() http.Handler {
+	return nil
 }
 
 func (eng *engine) replyError(reply string, err error) {
