@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"path"
 
 	"k8s.io/klog"
 
@@ -36,8 +35,8 @@ type Engine interface {
 	ReportExiting()
 	// Name of current engine
 	Name() string
-	// Services returns an extended handler to export engine's services, will mount at <prefix>/<Engine.Name()>
-	Services() http.Handler
+	// RegisterServices exports engine's extended services, will mount at <prefix>/<Engine.Name()>
+	RegisterServices(router *mux.Router)
 }
 
 // Loader discovers and loads function runtime config
@@ -113,9 +112,7 @@ func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Ha
 	ctx, sc.cancel = context.WithCancel(ctx)
 	sc.reigsterHandlers(router)
 
-	if routes := sc.eng.Services(); routes != nil {
-		router.Handle(path.Join("/", sc.eng.Name()), routes)
-	}
+	sc.eng.RegisterServices(router.PathPrefix(sc.eng.Name()).Subrouter())
 
 	// setup server
 	handler := handlers.LoggingHandler(logtools.GlogWriter(2), router)

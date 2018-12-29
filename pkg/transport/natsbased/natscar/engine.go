@@ -4,22 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/refunc/refunc/pkg/utils"
-
-	"k8s.io/klog"
-
+	"github.com/gorilla/mux"
 	nats "github.com/nats-io/go-nats"
 	observer "github.com/refunc/go-observer"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/runtime/types"
 	"github.com/refunc/refunc/pkg/sidecar"
+	"github.com/refunc/refunc/pkg/utils"
+	"k8s.io/klog"
 )
 
 type engine struct {
@@ -261,9 +259,7 @@ func (eng *engine) ReportExiting() {
 	}
 }
 
-func (eng *engine) Services() http.Handler {
-	return nil
-}
+func (eng *engine) RegisterServices(router *mux.Router) {}
 
 func (eng *engine) replyError(reply string, err error) {
 	klog.V(3).Infof("(sidecar) request on error, %v", err)

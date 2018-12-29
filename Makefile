@@ -63,7 +63,7 @@ refunc-image: TARGET_IMAGE=$(REFUNC_IMAGE)
 bin/$(GOOS)/loader: cmd/loader/*.go pkg/runtime/lambda/loader/*.go
 loader-image: TARGET_IMAGE=$(LOADER_IMAGE)
 
-bin/$(GOOS)/loader: cmd/sidecar/*.go $(shell find pkg/sidecar -type f -name '*.go') $(shell find pkg/transport -type f -name '*.go')
+bin/$(GOOS)/sidecar: cmd/sidecar/*.go $(shell find pkg/sidecar -type f -name '*.go') $(shell find pkg/transport -type f -name '*.go')
 sidecar-image: TARGET_IMAGE=$(SIDECAR_IMAGE)
 
 bin/$(GOOS)/agent: cmd/agent/*.go pkg/runtime/legacy/loader/*.go
