@@ -4,14 +4,14 @@ import (
 	"context"
 	"net"
 	"net/http"
-
-	"k8s.io/klog"
+	"path"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/runtime/types"
 	"github.com/refunc/refunc/pkg/utils/logtools"
+	"k8s.io/klog"
 )
 
 // APIVersion for current sidecard
@@ -112,7 +112,7 @@ func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Ha
 	ctx, sc.cancel = context.WithCancel(ctx)
 	sc.reigsterHandlers(router)
 
-	sc.eng.RegisterServices(router.PathPrefix(sc.eng.Name()).Subrouter())
+	sc.eng.RegisterServices(router.PathPrefix(path.Join("/", sc.eng.Name())).Subrouter())
 
 	// setup server
 	handler := handlers.LoggingHandler(logtools.GlogWriter(2), router)
