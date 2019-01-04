@@ -26,7 +26,7 @@ type Engine interface {
 	// InvokeRequest consume a request
 	InvokeRequest() *messages.InvokeRequest
 	// SetResult teminates a reqeust corresponding to its reqeust id (rid)
-	SetResult(rid string, body []byte, err error) error
+	SetResult(rid string, body []byte, err error, conentType string) error
 	// ReportInitError runtime encourted a unrecoverable error notify operator to shutdown
 	ReportInitError(err error)
 	// ReportReady notify operator that we're ready

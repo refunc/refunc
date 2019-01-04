@@ -60,7 +60,11 @@ WAIT_LOOP:
 	klog.V(3).Infof("(car) on reqeust %s with deadline %s", request.RequestID, deadline.Format(time.RFC3339))
 
 	// set headers
-	w.Header().Set("Content-Type", "application/json")
+	if value, ok := request.Options["content-type"]; ok {
+		w.Header().Set("Content-Type", value.(string))
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.Header().Set("Lambda-Runtime-Aws-Request-Id", request.RequestID)
 	w.Header().Set("Lambda-Runtime-Deadline-Ms", strconv.FormatInt(deadline.UnixNano()/1e6, 10))
 	w.Header().Set("Lambda-Runtime-Invoked-Function-Arn", sc.fn.ARN())
@@ -75,14 +79,15 @@ WAIT_LOOP:
 func (sc *Sidecar) handleInvocationResponse(w http.ResponseWriter, r *http.Request) {
 	rid := mux.Vars(r)["rid"]
 	body, err := ioutil.ReadAll(r.Body)
+	contentType := r.Header.Get("Content-Type")
 	if err != nil {
 		writeErrorResponse(w, http.StatusInternalServerError, "BodyReadError", err.Error())
-		sc.eng.SetResult(rid, nil, err)
+		sc.eng.SetResult(rid, nil, err, contentType)
 		return
 	}
 
 	klog.V(3).Infof("(sidecar) on response %s - %v", rid, utils.ByteSize(uint64(len(body))))
-	if err := sc.eng.SetResult(rid, body, nil); err != nil {
+	if err := sc.eng.SetResult(rid, body, nil, contentType); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 	} else {
 		writeStatus(w, http.StatusAccepted, "OK")
@@ -112,7 +117,7 @@ func (sc *Sidecar) handleError(w http.ResponseWriter, r *http.Request) {
 
 	klog.V(3).Infof("(sidecar) on error, %v", lambdaErr)
 	if rid := mux.Vars(r)["rid"]; rid != "" {
-		if err := sc.eng.SetResult(rid, nil, lambdaErr); err != nil {
+		if err := sc.eng.SetResult(rid, nil, lambdaErr, r.Header.Get("Content-Type")); err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			w.(http.Flusher).Flush()
 			return
