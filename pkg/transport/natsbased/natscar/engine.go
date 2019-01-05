@@ -168,10 +168,10 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 		if reply == "" {
 			reply = cryEndpoint
 		}
-		conn.Publish(reply, nil)
+		conn.Publish(reply, nil) //nolint:errcheck
 	})
 	if err != nil {
-		sub.Unsubscribe()
+		sub.Unsubscribe() //nolint:errcheck
 		return err
 	}
 
@@ -180,8 +180,8 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 		defer klog.V(2).Infof("(natscar) %s exited", fn.Name)
 		defer conn.Close()
 		defer conn.Flush()
-		defer sub.Unsubscribe()
-		defer crySubs.Unsubscribe()
+		defer sub.Unsubscribe()     //nolint:errcheck
+		defer crySubs.Unsubscribe() //nolint:errcheck
 
 		klog.V(2).Infof("(natscar) %s started", fn.Name)
 		tapTicker := time.NewTicker(2 * time.Second)
@@ -222,7 +222,7 @@ func (eng *engine) InvokeRequest() *messages.InvokeRequest {
 	return nil
 }
 
-func (eng *engine) SetResult(rid string, body []byte, err error) error {
+func (eng *engine) SetResult(rid string, body []byte, err error, conentType string) error {
 	if v, ok := eng.sessions.Load(rid); ok {
 		doneFunc := v.(taskDoneFunc)
 		reply, expired := doneFunc()
@@ -233,8 +233,9 @@ func (eng *engine) SetResult(rid string, body []byte, err error) error {
 		eng.publish(reply, messages.MustFromObject(&messages.Action{
 			Type: messages.Response,
 			Payload: messages.MustFromObject(&messages.InvokeResponse{
-				Payload: body,
-				Error:   messages.GetErrorMessage(err),
+				Payload:     body,
+				Error:       messages.GetErrorMessage(err),
+				ContentType: conentType,
 			}),
 		}))
 		return nil

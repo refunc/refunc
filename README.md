@@ -1,6 +1,6 @@
 # Refunc
 
-Refunc is a painless serverless platform to run [AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html) on [Kubernetes](https://kubernetes.io).
+Refunc is a [Kubernetes](https://kubernetes.io) native serverless platform.
 
 ![Refunc Architecture](https://user-images.githubusercontent.com/354668/50409374-188daf80-082d-11e9-9a9b-77407cd196ed.png)
 

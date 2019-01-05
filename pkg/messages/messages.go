@@ -56,6 +56,8 @@ type InvokeRequest struct {
 type InvokeResponse struct {
 	Payload json.RawMessage `json:"payload,omitempty"`
 	Error   *ErrorMessage   `json:"error,omitempty"`
+	// Content type of payload
+	ContentType string `json:"ContentType,omitempty"`
 }
 
 // ErrorMessage wraps error information during a invocation

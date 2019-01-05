@@ -41,8 +41,7 @@ const (
 )
 
 var config struct {
-	Namespace   string
-	DisableRBAC bool
+	Namespace string
 }
 
 // NewCmd creates new commands
@@ -53,19 +52,23 @@ func NewCmd() *cobra.Command {
 		Short: "play refunc in local or dev environment",
 		Run: func(cmd *cobra.Command, args []string) {
 			// print commands' help
-			cmd.Help()
+			cmd.Help() // nolint:errcheck
 		},
 	}
 	cmd.AddCommand(wrapcobra.Wrap(genCmd()))
 	cmd.AddCommand(wrapcobra.Wrap(startCmd()))
 
 	cmd.PersistentFlags().StringVarP(&config.Namespace, "namespace", "n", "refunc-play", "The scope of namepsace to manipulate")
-	cmd.PersistentFlags().BoolVar(&config.DisableRBAC, "disable-rbac", false, "If enable rbac")
 
 	return cmd
 }
 
 func genCmd() *cobra.Command {
+	var tplConfig struct {
+		Bucket      string
+		S3Prefix    string
+		DisableRBAC bool
+	}
 	cmd := &cobra.Command{
 		Use:   "gen",
 		Short: "generate all-in-one k8s resources for play in local",
@@ -74,15 +77,22 @@ func genCmd() *cobra.Command {
 				Namespace string
 				ImageTag  string
 				RBAC      bool
+				Bucket    string
+				S3Prefix  string
 			}{
 				Namespace: config.Namespace,
 				ImageTag:  version.Version,
-				RBAC:      !config.DisableRBAC,
+				RBAC:      !tplConfig.DisableRBAC,
+				Bucket:    tplConfig.Bucket,
+				S3Prefix:  tplConfig.S3Prefix,
 			}); err != nil {
 				klog.Fatal(err)
 			}
 		},
 	}
+	cmd.Flags().BoolVar(&tplConfig.DisableRBAC, "disable-rbac", false, "If enable rbac")
+	cmd.Flags().StringVar(&tplConfig.Bucket, "bucket", "refunc", "Bucket for minio to store functions")
+	cmd.Flags().StringVar(&tplConfig.S3Prefix, "prefix", "functions", "Path prefix(folder) to store functions under bukect")
 	return cmd
 }
 

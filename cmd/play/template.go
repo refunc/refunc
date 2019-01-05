@@ -290,9 +290,9 @@ spec:
         - name: MINIO_PUBLIC_ENDPOINT
           value: "http://s3.{{.Namespace}}"
         - name: MINIO_BUCKET
-          value: refunc
+          value: {{ .Bucket }}
         - name: MINIO_SCOPE
-          value: funcs
+          value: {{ .S3Prefix }}
         - name: MINIO_ACCESS_KEY
           valueFrom:
             secretKeyRef:
@@ -336,7 +336,9 @@ spec:
         refunc.io/res: storage
         refunc.io/name: s3
     spec:
+    {{- if .RBAC }}
       serviceAccount: refunc
+    {{- end }}
       initContainers:
       - name: make-bucket
         image: busybox
@@ -444,6 +446,9 @@ spec:
         refunc.io/res: gateway
         refunc.io/name: aws-api
     spec:
+    {{- if .RBAC }}
+      serviceAccount: refunc
+    {{- end }}
       containers:
       - name: api
         image: refunc/aws-api-gw
@@ -467,9 +472,9 @@ spec:
         - name: MINIO_PUBLIC_ENDPOINT
           value: "http://s3.{{.Namespace}}"
         - name: MINIO_BUCKET
-          value: refunc
+          value: {{ .Bucket }}
         - name: MINIO_SCOPE
-          value: funcs
+          value: {{ .S3Prefix }}
         - name: MINIO_ACCESS_KEY
           valueFrom:
             secretKeyRef:
