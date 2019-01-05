@@ -28,7 +28,7 @@ func (sc *Sidecar) reigsterHandlers(router *mux.Router) {
 }
 
 func (sc *Sidecar) handlePing(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("pong"))
+	w.Write([]byte("pong")) //nolint:errcheck
 }
 
 func (sc *Sidecar) handleInvocationNext(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +73,7 @@ WAIT_LOOP:
 	// w.Header().Set("Lambda-Runtime-Client-Context", xxx)
 	// w.Header().Set("Lambda-Runtime-Cognito-Identity", xxx)
 
-	w.Write(request.Args)
+	w.Write(request.Args) //nolint:errcheck
 }
 
 func (sc *Sidecar) handleInvocationResponse(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,9 @@ func (sc *Sidecar) handleInvocationResponse(w http.ResponseWriter, r *http.Reque
 	contentType := r.Header.Get("Content-Type")
 	if err != nil {
 		writeErrorResponse(w, http.StatusInternalServerError, "BodyReadError", err.Error())
-		sc.eng.SetResult(rid, nil, err, contentType)
+		if err := sc.eng.SetResult(rid, nil, err, contentType); err != nil {
+			klog.Errorf("(car) failed set result, %v", err)
+		}
 		return
 	}
 

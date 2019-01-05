@@ -20,6 +20,7 @@ func writeErrorResponse(w http.ResponseWriter, code int, errType, errMsg string)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
+	//nolint:errcheck
 	w.Write(func() []byte {
 		bts, _ := json.Marshal(struct {
 			ErrorType    string `json:"errorType"`
@@ -36,6 +37,7 @@ func writeStatus(w http.ResponseWriter, code int, status string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
+	//nolint:errcheck
 	w.Write(func() []byte {
 		bts, _ := json.Marshal(struct {
 			Status string `json:"status"`

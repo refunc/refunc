@@ -105,7 +105,10 @@ func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Ha
 	}
 	sc.fn = fn
 
-	sc.eng.Init(ctx, fn)
+	if err := sc.eng.Init(ctx, fn); err != nil {
+		// unrecoverable
+		klog.Fatalf("(sidecar) cannot init engine, %v", err)
+	}
 
 	router := mux.NewRouter()
 
@@ -134,5 +137,5 @@ func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Ha
 
 	sc.eng.ReportExiting()
 
-	shutdown(ctx)
+	shutdown(ctx) //nolint:errcheck
 }
