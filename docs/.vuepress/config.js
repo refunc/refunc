@@ -17,12 +17,12 @@ module.exports = {
     ga: 'UA-8653269-3',
     // serviceWorker: true,
     locales: {
-        '/': {
+        '/zh/': {
             lang: 'zh-CN',
             title: 'Refunc',
             description: '企业级无服务运行平台'
         },
-        '/en/': {
+        '/': {
             lang: 'en-US',
             title: 'Refunc',
             description: 'AWS Lambda in kubernetes, and more',
@@ -33,7 +33,7 @@ module.exports = {
         editLinks: true,
         docsDir: 'docs',
         locales: {
-            '/': {
+            '/zh/': {
                 label: '简体中文',
                 selectText: 'Languages',
                 editLinkText: '在 GitHub 上编辑此页',
@@ -41,20 +41,20 @@ module.exports = {
                 nav: [
                     {
                         text: '指南',
-                        link: '/guide/',
+                        link: '/zh/guide/',
                     },
                 ],
                 sidebar: {
-                    '/guide/': genSidebarConfig('指南', [
+                    '/zh/guide/': genSidebarConfig('指南', [
                         '',
                         'quickstart',
                         'rfctl',
                     ])
                 },
             },
-            '/en/': {
+            '/': {
                 label: 'English',
-                selectText: '选择语言',
+                selectText: 'Languages',
                 editLinkText: 'Edit this page on GitHub',
                 lastUpdated: 'Last Updated',
                 nav: [
