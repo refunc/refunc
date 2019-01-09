@@ -1,7 +1,7 @@
 ---
 home: true
 actionText: Lean more →
-actionLink: /guide/
+actionLink: /en/guide/
 footer: Apache License v2.0 Licensed | Copyright © 2017-2019 Bin Zhao
 ---
 

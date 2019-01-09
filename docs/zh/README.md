@@ -1,7 +1,7 @@
 ---
 home: true
 actionText: 了解更多 →
-actionLink: /guide/
+actionLink: /zh/guide/
 footer: Apache License v2.0 Licensed | Copyright © 2017-2019 Bin Zhao
 ---
 
