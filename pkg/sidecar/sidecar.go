@@ -118,7 +118,7 @@ func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Ha
 	sc.eng.RegisterServices(router.PathPrefix(path.Join("/", sc.eng.Name())).Subrouter())
 
 	// setup server
-	handler := handlers.LoggingHandler(logtools.GlogWriter(2), router)
+	handler := handlers.LoggingHandler(logtools.GlogWriter(logtools.GoLogLevel), router)
 
 	// handle proxy
 	handler = handlers.ProxyHeaders(handler)
