@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/refunc/refunc/pkg/utils/cmdutil/pflagenv"
@@ -109,7 +110,7 @@ func InitFlags() {
 	// AddAllFlagsToPFlags()
 
 	// hack for glog
-	flag.Set("logtostderr", "true")
+	flag.Set("logtostderr", "true") // nolint:errcheck
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	oldArgs := os.Args
 	os.Args = []string{os.Args[0]}
@@ -119,8 +120,12 @@ func InitFlags() {
 	flagset := flag.NewFlagSet("klog", flag.ContinueOnError)
 	klog.InitFlags(flagset)
 	// set default flags, enable klog.Set*Ouput to capture logs
-	flagset.Set("alsologtostderr", "true")
-	flagset.Set("log_file", "/dev/null")
+	flagset.Set("alsologtostderr", "true") // nolint:errcheck
+	if runtime.GOOS == "windows" {
+		flagset.Set("log_file", "nul") // nolint:errcheck
+	} else {
+		flagset.Set("log_file", "/dev/null") // nolint:errcheck
+	}
 	AddFlagSetToPFlagSet(flagset, pflag.CommandLine)
 
 	// set flags from environment variables first
