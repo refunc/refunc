@@ -110,7 +110,7 @@ func InitFlags() {
 	// AddAllFlagsToPFlags()
 
 	// hack for glog
-	flag.Set("logtostderr", "true") // nolint:errcheck
+	// flag.Set("logtostderr", "true") // nolint:errcheck
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	oldArgs := os.Args
 	os.Args = []string{os.Args[0]}
