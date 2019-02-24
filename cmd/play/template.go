@@ -66,7 +66,7 @@ data:
 
         location ^~ / {
           proxy_set_header Host $http_host;
-          proxy_pass http://s3.refunc-play;
+          proxy_pass http://s3.{{.Namespace}};
         }
         location ^~ /2015-03-31/ {
           proxy_pass http://127.0.0.1:4574;
