@@ -7,8 +7,7 @@ Before start, you need a k8s runs on somewhere, [minikube](https://github.com/ku
 Install Refunc play(which is a mini setup of refunc) using the following commands:
 
 ```shell
-docker run --rm -it -e REFUNC_ENV=cluster refunc/refunc \
-refunc play gen -n refunc-play | kubectl apply -f -
+docker run --rm -it refunc/refunc refunc play gen -n refunc-play | kubectl apply -f -
 ```
 
 This will create namespace `refunc-play` and deploy components in it.

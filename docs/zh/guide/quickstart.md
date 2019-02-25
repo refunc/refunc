@@ -7,8 +7,7 @@
 为了方便本地测试, Refunc 为 [Minikube](https://github.com/kubernetes/minikube) 和 [Docker for Mac](https://docs.docker.com/docker-for-mac/kubernetes/) refunc 提供了 `play` 命令, 用来生成一个本地最小环境的k8s配置文件, 在终端里执行下面的命令:
 
 ```bash
-docker run --rm -it -e REFUNC_ENV=cluster refunc/refunc \
-refunc play gen -n refunc-play | kubectl apply -f -
+docker run --rm -it refunc/refunc refunc play gen -n refunc-play | kubectl apply -f -
 ```
 
 如果一切顺利的话此时 Refunc 已经在本地的 Kubernetes 里跑起来了:

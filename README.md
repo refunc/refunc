@@ -23,8 +23,7 @@ Install `refunc-play`, a minimal setup of Refunc, using the following commands:
 
 ```shell
 # This will create namespace `refunc-play` and deploy components in it
-docker run --rm -it -e REFUNC_ENV=cluster refunc/refunc \
-refunc play gen -n refunc-play | kubectl apply -f -
+docker run --rm -it refunc/refunc refunc play gen -n refunc-play | kubectl apply -f -
 # create runtime python3.7
 kubectl create -n refunc-play -f \
 https://github.com/refunc/lambda-python3.7-example/releases/download/v0.0.2/xenv.yaml
