@@ -50,7 +50,7 @@ func flushWriter(w io.Writer) {
 	if s, ok := w.(interface {
 		Sync() error
 	}); ok {
-		s.Sync()
+		s.Sync() // nolint:errcheck
 	} else if s, ok := w.(interface {
 		Flush()
 	}); ok {

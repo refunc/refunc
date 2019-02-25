@@ -18,17 +18,22 @@ import (
 	"github.com/refunc/refunc/pkg/utils"
 )
 
+var ErrBaseURLIsEmpty = errors.New("http_resovler: Base URL is not set")
+
 // NewHTTPResolver creates a new task and starts a resolver at `endpoint`
 func NewHTTPResolver(ctx context.Context, endpoint string, request *messages.InvokeRequest) (TaskResolver, error) {
 	// clean path
 	endpoint = strings.Trim(endpoint, "/")
 	params := url.Values{}
-	env := getEnv(ctx)
 	if IsLoggingEnabled(ctx) {
 		// enable logs pulling
 		params.Add("recv_log", "true")
 	}
-	reqURL := env.BaseURL + "/" + endpoint + "/tasks" + "?" + params.Encode()
+	baseURL := GetHTTPBaseURL(ctx)
+	if baseURL == "" {
+		return nil, ErrBaseURLIsEmpty
+	}
+	reqURL := baseURL + "/" + endpoint + "/tasks" + "?" + params.Encode()
 
 	logger := GetLogger(ctx)
 
@@ -55,13 +60,7 @@ func NewHTTPResolver(ctx context.Context, endpoint string, request *messages.Inv
 		// set headers
 		req.Header.Set("User-Agent", "go-refunc v1")
 		req.Header.Set("Content-Type", "application/json; charset=utf-8")
-		req.Header.Set("X-Refunc-User", strings.TrimSuffix(env.Name, "/local"))
-		req.Header.Set("X-Refunc-In-Cluster", func() string {
-			if env.InCluster {
-				return "true"
-			}
-			return "false"
-		}())
+		req.Header.Set("X-Refunc-User", strings.TrimSuffix(Name(ctx), "/local"))
 
 		rsp, err := cli.Do(req)
 		if err != nil {

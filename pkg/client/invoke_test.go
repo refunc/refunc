@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog"
 )
 
+// nolint:errcheck
 func init() {
 	fs := flag.NewFlagSet("klog", flag.ContinueOnError)
 	klog.InitFlags(fs)

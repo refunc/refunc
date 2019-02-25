@@ -3,32 +3,29 @@ package client
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/refunc/refunc/pkg/messages"
 )
 
 // DefaultContext for current env
 var DefaultContext context.Context
 
 var (
+	nameKey struct {
+		_0 struct{}
+	}
 	loggerKey struct {
 		_1 struct{}
 	}
-	execEnvKey struct {
-		_2 struct{}
-	}
+	// execEnvKey struct {
+	// 	_2 struct{}
+	// }
 	httpCliKey struct {
 		_3 struct{}
 	}
-	rawMsgKey struct {
+	httpBaseURLKey struct {
 		_4 struct{}
-	}
-	// store paresed envmap in context
-	envMapKey struct {
-		_5 struct{}
 	}
 	natsKey struct {
 		_6 struct{}
@@ -41,9 +38,16 @@ var (
 	}
 )
 
+func WithName(parent context.Context, name string) context.Context {
+	return context.WithValue(parent, nameKey, name)
+}
+
 // Name returns the name of current environment
 func Name(ctx context.Context) string {
-	return getEnv(ctx).Name
+	if v := ctx.Value(nameKey); v != nil {
+		return v.(string)
+	}
+	return "dev"
 }
 
 // WithLogger set new logger to current context
@@ -65,6 +69,19 @@ func WithHTTPClient(parent context.Context, client *http.Client) context.Context
 		return context.WithValue(parent, httpCliKey, client)
 	}
 	return parent
+}
+
+// WithHTTPBaseURL sets a custom configured http.Client
+func WithHTTPBaseURL(parent context.Context, baseURL string) context.Context {
+	return context.WithValue(parent, httpBaseURLKey, baseURL)
+}
+
+// GetHTTPBaseURL returns http BaseURL associated current context
+func GetHTTPBaseURL(ctx context.Context) string {
+	if v := ctx.Value(httpBaseURLKey); v != nil {
+		return v.(string)
+	}
+	return ""
 }
 
 // WithNatsConn sets a valid nats connetion to use NATS based RPC
@@ -89,7 +106,7 @@ func IsLoggingEnabled(ctx context.Context) bool {
 }
 
 // WithTimeoutHint sets timeout for invocation,
-// this is different for context.WithTimeout, this is set a hint that pass to remote
+// this is different for context.WithTimeout, this is a hint that will be past to remote
 func WithTimeoutHint(parent context.Context, timeout time.Duration) context.Context {
 	if deadline, ok := parent.Deadline(); ok && deadline.Before(time.Now().Add(timeout)) {
 		timeout = deadline.Sub(time.Now())
@@ -117,67 +134,20 @@ func GetTimeoutHint(ctx context.Context) time.Duration {
 	return timeout
 }
 
-// GetEnviron returns envrionment variables of current context
-func GetEnviron(ctx context.Context) []string {
-	return getEnv(ctx).Environ
-}
+// func withRootEnv(parent context.Context) context.Context {
+// 	return withEnv(parent, rootEnv)
+// }
 
-// GetRawReqeustMessage retrieves *messages.RequestedMsg that assocated within the given context
-func GetRawReqeustMessage(ctx context.Context) *messages.InvokeRequest {
-	if v := ctx.Value(rawMsgKey); v != nil {
-		if req, ok := v.(*messages.InvokeRequest); ok {
-			return req
-		}
-	}
-	return nil
-}
+// func withEnv(parent context.Context, env *execEnv) context.Context {
+// 	return context.WithValue(parent, execEnvKey, env)
+// }
 
-// WithParsedEnv parse environ to a map[string]string
-func WithParsedEnv(ctx context.Context) context.Context {
-	if val := ctx.Value(envMapKey); val == nil {
-		return context.WithValue(ctx, envMapKey, envMap(GetEnviron(ctx)))
-	}
-	return ctx
-}
-
-// GetEnvironMap returns a parsed environments map
-func GetEnvironMap(ctx context.Context) map[string]string {
-	if val := ctx.Value(envMapKey); val != nil {
-		return val.(map[string]string)
-	}
-	return envMap(GetEnviron(ctx))
-}
-
-func envMap(environ []string) map[string]string {
-	env := make(map[string]string, len(environ)+1)
-	for i := range environ {
-		parts := strings.SplitN(environ[i], "=", 2)
-		if len(parts) == 1 {
-			parts = append(parts, "")
-		}
-		env[strings.ToUpper(parts[0])] = parts[1]
-	}
-	return env
-}
-
-func setRequestedMessage(parent context.Context, req *messages.InvokeRequest) context.Context {
-	return context.WithValue(parent, rawMsgKey, req)
-}
-
-func withRootEnv(parent context.Context) context.Context {
-	return withEnv(parent, rootEnv)
-}
-
-func withEnv(parent context.Context, env *execEnv) context.Context {
-	return context.WithValue(parent, execEnvKey, env)
-}
-
-func getEnv(ctx context.Context) *execEnv {
-	if v := ctx.Value(execEnvKey); v != nil {
-		return v.(*execEnv)
-	}
-	return rootEnv.Copy()
-}
+// func getEnv(ctx context.Context) *execEnv {
+// 	if v := ctx.Value(execEnvKey); v != nil {
+// 		return v.(*execEnv)
+// 	}
+// 	return rootEnv.Copy()
+// }
 
 type nopLogger struct{}
 

@@ -47,9 +47,8 @@ type SimpleResolver struct {
 	msgSrc observer.Property
 	logSrc observer.Property
 
-	timeout time.Duration
-	ctx     context.Context
-	cancel  context.CancelFunc
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	task struct {
 		factory TaskFactory

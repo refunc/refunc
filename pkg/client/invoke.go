@@ -19,7 +19,7 @@ func Invoke(ctx context.Context, endpoint string, body interface{}) ([]byte, err
 		Args: messages.MustFromObject(body),
 	}
 	req.RequestID = utils.GenID(req.Args)
-	req.User = strings.TrimSuffix(getEnv(ctx).Name, "/local")
+	req.User = strings.TrimSuffix(Name(ctx), "/local")
 	taskR, err = NewTaskResolver(ctx, endpoint, req)
 	if err != nil {
 		return nil, err

@@ -102,7 +102,7 @@ func NewNatsResolver(ctx context.Context, nc *nats.Conn, endpoint string, reques
 
 		defer func() {
 			if logSubs != nil {
-				logSubs.Unsubscribe()
+				logSubs.Unsubscribe() // nolint:errcheck
 			}
 		}()
 
