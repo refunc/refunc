@@ -16,11 +16,11 @@ func cmdCronTrigger() *cobra.Command {
 		Offset time.Duration
 	}
 
-	cmd := triggerCmdTemplate(func(oc *operatorConfig) {
-		oc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+	cmd := triggerCmdTemplate(func(sc sharedcfg.SharedConfigs) {
+		sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
 			r, err := crontrigger.NewOperator(
+				cfg.Context(),
 				cfg.RestConfig(),
-				oc.NatsConn,
 				cfg.RefuncClient(),
 				cfg.RefuncInformers(),
 			)

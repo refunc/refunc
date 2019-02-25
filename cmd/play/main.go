@@ -9,6 +9,7 @@ import (
 	"k8s.io/klog"
 
 	nats "github.com/nats-io/go-nats"
+	"github.com/refunc/refunc/pkg/client"
 	"github.com/refunc/refunc/pkg/controllers/funcinst"
 	"github.com/refunc/refunc/pkg/controllers/xenv"
 	"github.com/refunc/refunc/pkg/credsyncer"
@@ -117,6 +118,7 @@ func startCmd() *cobra.Command {
 			defer natsConn.Close()
 
 			ctx, cancel := context.WithCancel(context.Background())
+			ctx = client.WithNatsConn(ctx, natsConn)
 
 			sc := sharedcfg.New(ctx, config.Namespace)
 			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
@@ -175,8 +177,8 @@ func startCmd() *cobra.Command {
 
 			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
 				r, err := crontrigger.NewOperator(
+					cfg.Context(),
 					cfg.RestConfig(),
-					natsConn,
 					cfg.RefuncClient(),
 					cfg.RefuncInformers(),
 				)
@@ -189,8 +191,8 @@ func startCmd() *cobra.Command {
 
 			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
 				r, err := httptrigger.NewOperator(
+					cfg.Context(),
 					cfg.RestConfig(),
-					natsConn,
 					cfg.RefuncClient(),
 					cfg.RefuncInformers(),
 				)

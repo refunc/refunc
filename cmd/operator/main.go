@@ -69,7 +69,7 @@ func operatorCmdTemplate(factory func(cfg sharedcfg.Configs) sharedcfg.Runner) *
 
 			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
 				r := factory(cfg)
-				// init buildin verifier
+				// nolint:errcheck init buildin verifier
 				verifier.RegisterVerifer(
 					cfg.Context().Done(),
 					cfg.Namespace(),

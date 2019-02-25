@@ -14,7 +14,6 @@ import (
 
 	"github.com/gorilla/mux"
 	observer "github.com/refunc/go-observer"
-	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	"github.com/refunc/refunc/pkg/client"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/utils"
@@ -26,13 +25,7 @@ var (
 	blockTickerCh = make(chan time.Time)
 )
 
-const (
-	pingInterval = 500 * time.Millisecond
-
-	// const strings for reuse
-	trueStr = "true"
-	jsonCT  = "application/json; charset=utf-8"
-)
+const jsonCT = "application/json; charset=utf-8"
 
 type httpHandler struct {
 	fndKey string
@@ -154,7 +147,7 @@ func (t *httpHandler) handleMeta(rw http.ResponseWriter, req *http.Request) {
 	// TODO (bin): maybe using annotations
 	// serve embeded meta
 	rw.Header().Set("Content-Type", jsonCT)
-	rw.Write(append([]byte{'{', '}'}, messages.TokenCRLF...))
+	rw.Write(append([]byte{'{', '}'}, messages.TokenCRLF...)) // nolint:errcheck
 	return
 }
 
@@ -245,11 +238,4 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isstream b
 	}
 	rw.Header().Set("Content-Type", ct)
 	return rw.Write(bts)
-}
-
-func getContentType(trigger *rfv1beta3.Trigger) string {
-	if trigger.Spec.HTTPTrigger != nil && trigger.Spec.HTTPTrigger.ContentType != "" {
-		return trigger.Spec.HTTPTrigger.ContentType
-	}
-	return jsonCT
 }

@@ -2,7 +2,6 @@ package crontrigger
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -202,9 +201,8 @@ func (t *cronHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Tr
 			timeout = time.Second*time.Duration(fndef.Spec.Runtime.Timeout) + codeLaunchBias
 		}
 
-		ctx := context.Background()
+		ctx := t.operator.ctx
 		ctx = client.WithLogger(ctx, klog.V(1))
-		ctx = client.WithNatsConn(ctx, t.operator.NatsConn)
 		ctx = client.WithTimeoutHint(ctx, timeout)
 		ctx = client.WithLoggingHint(ctx, true)
 		return client.NewTaskResolver(ctx, endpoint, request)

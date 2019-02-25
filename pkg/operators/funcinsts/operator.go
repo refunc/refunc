@@ -68,7 +68,7 @@ func NewOperator(
 	handler transport.OperatorHandler,
 	creds credsyncer.Provider,
 ) (*Operator, error) {
-	base, err := operators.NewBaseOperator(cfg, nil, rclient, rfInformers)
+	base, err := operators.NewBaseOperator(cfg, rclient, rfInformers)
 	if err != nil {
 		return nil, err
 	}

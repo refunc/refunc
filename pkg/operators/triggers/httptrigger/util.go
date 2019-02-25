@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 )
 
 func writeHTTPError(rw http.ResponseWriter, code int, msg string) {
@@ -20,16 +19,6 @@ func flushRW(rw http.ResponseWriter) {
 		Flush()
 	}); ok {
 		f.Flush()
-	}
-}
-
-func reqParamBoolChecker(req *http.Request) func(string) bool {
-	vals := req.URL.Query()
-	return func(key string) bool {
-		if val, ok := vals[key]; ok && len(val) > 0 {
-			return strings.ToLower(val[0]) == trueStr
-		}
-		return false
 	}
 }
 

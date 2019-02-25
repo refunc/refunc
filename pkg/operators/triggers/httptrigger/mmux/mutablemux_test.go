@@ -27,9 +27,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// nolint:errcheck
 func OldHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.Write([]byte("old handler"))
 }
+
+// nolint:errcheck
 func NewHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.Write([]byte("new handler"))
 }
@@ -40,7 +43,7 @@ func verifyRequest(expectedResponse string) {
 }
 
 func startServer(mr *MutableRouter) {
-	http.ListenAndServe(":3333", mr)
+	http.ListenAndServe(":3333", mr) // nolint:errcheck
 }
 
 func spamServer(quit chan bool) {

@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	nats "github.com/nats-io/go-nats"
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	refunc "github.com/refunc/refunc/pkg/generated/clientset/versioned"
 	rfinformers "github.com/refunc/refunc/pkg/generated/informers/externalversions"
@@ -25,7 +24,6 @@ type BaseOperator struct {
 	Namespace string
 
 	// shared by concrete funcinst
-	NatsConn        *nats.Conn
 	RefuncClient    refunc.Interface
 	RefuncInformers rfinformers.SharedInformerFactory
 	FuncdefLister   rflistersv1.FuncdefLister
@@ -36,14 +34,11 @@ type BaseOperator struct {
 // NewBaseOperator creates a new refunc router from config
 func NewBaseOperator(
 	cfg *rest.Config,
-	natsConn *nats.Conn,
 	rclient refunc.Interface,
 	refuncInformers rfinformers.SharedInformerFactory,
 ) (router *BaseOperator, err error) {
 
-	r := &BaseOperator{
-		NatsConn: natsConn,
-	}
+	r := new(BaseOperator)
 
 	r.RefuncClient = rclient
 	r.RefuncInformers = refuncInformers

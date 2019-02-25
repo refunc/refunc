@@ -1,6 +1,7 @@
 package crontrigger
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -13,7 +14,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	nats "github.com/nats-io/go-nats"
 	observer "github.com/refunc/go-observer"
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	refunc "github.com/refunc/refunc/pkg/generated/clientset/versioned"
@@ -28,6 +28,8 @@ type Operator struct {
 
 	Offset time.Duration
 
+	ctx context.Context
+
 	triggers sync.Map
 
 	liveTasks operators.LiveTaskStore
@@ -35,28 +37,24 @@ type Operator struct {
 	scheduled observer.Property
 }
 
-const (
-	// Type name for rpc trigger
-	Type = "crontrigger"
-
-	triggerPrifix    = "cron-"
-	labelAutoCreated = "crontrigger.refunc.io/auto-created"
-)
+// Type name for rpc trigger
+const Type = "crontrigger"
 
 // NewOperator creates a new rpc trigger operator
 func NewOperator(
+	ctx context.Context,
 	cfg *rest.Config,
-	conn *nats.Conn,
 	rclient refunc.Interface,
 	rfInformers informers.SharedInformerFactory,
 ) (*Operator, error) {
-	base, err := operators.NewBaseOperator(cfg, conn, rclient, rfInformers)
+	base, err := operators.NewBaseOperator(cfg, rclient, rfInformers)
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Operator{
 		BaseOperator: base,
+		ctx:          ctx,
 		liveTasks:    operators.NewLiveTaskStore(),
 		scheduled:    observer.NewProperty(nil),
 	}
@@ -276,17 +274,4 @@ func (r *Operator) getTriggerLister() (trlsiter func(labels.Selector) ([]*rfv1be
 
 func k8sKey(o metav1.Object) string {
 	return o.GetNamespace() + "/" + o.GetName()
-}
-
-func retryOnceOnError(fn func() error) error {
-	for i := 0; ; i++ {
-		err := fn()
-		if err != nil {
-			if i >= operators.MaxRetries {
-				return err
-			}
-			continue
-		}
-		return nil
-	}
 }

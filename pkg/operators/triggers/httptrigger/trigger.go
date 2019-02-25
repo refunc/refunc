@@ -1,6 +1,7 @@
 package httptrigger
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -14,7 +15,6 @@ import (
 	"github.com/allegro/bigcache"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	nats "github.com/nats-io/go-nats"
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	rfcli "github.com/refunc/refunc/pkg/generated/clientset/versioned"
 	informers "github.com/refunc/refunc/pkg/generated/informers/externalversions"
@@ -40,6 +40,8 @@ type Operator struct {
 		AllowCredentials bool
 	}
 
+	ctx context.Context
+
 	triggers sync.Map
 
 	liveTasks operators.LiveTaskStore
@@ -51,27 +53,24 @@ type Operator struct {
 	}
 }
 
-const (
-	// Type name for http trigger
-	Type = "httptrigger"
-
-	triggerPrifix = "http-"
-)
+// Type name for http trigger
+const Type = "httptrigger"
 
 // NewOperator creates a new http trigger operator
 func NewOperator(
+	ctx context.Context,
 	cfg *rest.Config,
-	conn *nats.Conn,
 	rclient rfcli.Interface,
 	rfInformers informers.SharedInformerFactory,
 ) (*Operator, error) {
-	base, err := operators.NewBaseOperator(cfg, conn, rclient, rfInformers)
+	base, err := operators.NewBaseOperator(cfg, rclient, rfInformers)
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Operator{
 		BaseOperator: base,
+		ctx:          ctx,
 		liveTasks:    operators.NewLiveTaskStore(),
 	}
 
@@ -173,19 +172,6 @@ func (r *Operator) popluateEndpoints() {
 
 func k8sKey(o metav1.Object) string {
 	return o.GetNamespace() + "/" + o.GetName()
-}
-
-func retryOnceOnError(fn func() error) error {
-	for i := 0; ; i++ {
-		err := fn()
-		if err != nil {
-			if i >= operators.MaxRetries {
-				return err
-			}
-			continue
-		}
-		return nil
-	}
 }
 
 // DefaultRequestReadTimeout for http server

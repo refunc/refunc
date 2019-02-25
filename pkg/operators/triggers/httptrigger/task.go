@@ -1,7 +1,6 @@
 package httptrigger
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -46,9 +45,8 @@ func (t *httpHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Tr
 			return false
 		}()
 
-		ctx := context.Background()
+		ctx := t.operator.ctx
 		ctx = client.WithLogger(ctx, klog.V(2))
-		ctx = client.WithNatsConn(ctx, t.operator.NatsConn)
 		ctx = client.WithTimeoutHint(ctx, timeout)
 		ctx = client.WithLoggingHint(ctx, fwdLogs)
 		endpoint := trigger.Namespace + "/" + trigger.Spec.FuncName
@@ -76,7 +74,7 @@ func (t *httpHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Tr
 			bts, err := tr.Result()
 			if cacheEnabled && err == nil {
 				klog.V(3).Infof("(h) %s set cache", tr.Name())
-				t.operator.http.cache.Set(id, bts)
+				t.operator.http.cache.Set(id, bts) //nolint:errcheck
 			}
 		}()
 
