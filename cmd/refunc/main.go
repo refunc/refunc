@@ -22,7 +22,6 @@ import (
 
 	// config runtimes and transport
 	_ "github.com/refunc/refunc/pkg/runtime/lambda/runtime"
-	_ "github.com/refunc/refunc/pkg/runtime/legacy/runtime"
 )
 
 func main() {
