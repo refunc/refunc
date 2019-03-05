@@ -16,6 +16,7 @@ import (
 	"github.com/refunc/refunc/pkg/runtime/types"
 )
 
+//nolint:errcheck
 func init() {
 	fs := flag.NewFlagSet("klog", flag.ContinueOnError)
 	klog.InitFlags(fs)
@@ -36,6 +37,7 @@ func Test_simpleLoader_setup(t *testing.T) {
 
 	test := func(name string, wantErr bool, fn *types.Function) {
 		t.Run(name, func(t *testing.T) {
+			//nolint:errcheck
 			withTmpFloder(func(base string) {
 				p := func(f string) string {
 					return filepath.Join(base, f)
@@ -78,6 +80,7 @@ func Test_simpleLoader_setup(t *testing.T) {
 
 	test("Base64", false, fn)
 
+	//nolint:errcheck
 	withTmpFloder(func(base string) {
 		// start file server
 		saveBase64(fn.Spec.Body, base)

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"k8s.io/klog"
@@ -117,7 +118,7 @@ func (ld *simpleLoader) wait(addr string) (*types.Function, error) {
 			// override message
 			errMsg.Message = msg
 		}
-		w.Write(messages.MustFromObject(errMsg))
+		w.Write(messages.MustFromObject(errMsg)) //nolint:errcheck
 		w.(http.Flusher).Flush()
 		// shutdown do not try anymore
 		if code >= 500 {
@@ -128,39 +129,39 @@ func (ld *simpleLoader) wait(addr string) (*types.Function, error) {
 		}
 	}
 
+	var initOnce sync.Once
 	router.Path("/init").Methods(http.MethodPost).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var fn types.Function
-		if err := json.NewDecoder(r.Body).Decode(&fn); err != nil {
-			writeError(w, http.StatusBadRequest, err, "")
-			return
-		}
+		initOnce.Do(func() {
+			var fn types.Function
+			if err := json.NewDecoder(r.Body).Decode(&fn); err != nil {
+				writeError(w, http.StatusBadRequest, err, "")
+				return
+			}
 
-		// capture logs
-		buf, err := func() ([]byte, error) {
-			buf := bytes.NewBuffer(nil)
-			klogWriter.Switch(buf)
-			err := ld.setup(&fn)
-			klog.Flush()
-			klogWriter.Switch(nil)
-			return buf.Bytes(), err
-		}()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err, fmt.Sprintf("loader: %v\r\n%s", err, string(buf)))
-			w.(http.Flusher).Flush()
-			return
-		}
+			// capture logs
+			buf, err := func() ([]byte, error) {
+				buf := bytes.NewBuffer(nil)
+				klogWriter.Switch(buf)
+				defer klog.Flush()
+				defer klogWriter.Switch(nil)
+				return buf.Bytes(), ld.setup(&fn)
+			}()
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err, fmt.Sprintf("loader: %v\r\n%s", err, string(buf)))
+				w.(http.Flusher).Flush()
+				return
+			}
 
-		select {
-		case fnC <- &fn:
 			w.WriteHeader(http.StatusOK)
-			w.Write(buf)
-			w.Write(messages.TokenCRLF)
-		default: // avoid panic
-			w.WriteHeader(http.StatusConflict)
-			w.Write(messages.MustFromObject(messages.GetErrorMessage(errors.New("loader: already initialized"))))
-		}
+			w.Write(buf)                //nolint:errcheck
+			w.Write(messages.TokenCRLF) //nolint:errcheck
 
-		w.(http.Flusher).Flush()
+			fnC <- &fn
+			w.(http.Flusher).Flush()
+			w = noOpRspWriter{}
+		})
+
+		w.WriteHeader(http.StatusOK)
 	})
 
 	// setup server
@@ -170,7 +171,7 @@ func (ld *simpleLoader) wait(addr string) (*types.Function, error) {
 		Handler: handler,
 	}
 	defer func() {
-		go server.Shutdown(context.Background())
+		go server.Shutdown(context.Background()) //nolint:errcheck
 	}()
 
 	// kickoff and serve
@@ -220,3 +221,9 @@ func (ld *simpleLoader) layersRoot() string {
 	}
 	return DefaultLayersRoot
 }
+
+type noOpRspWriter struct{}
+
+func (noOpRspWriter) Header() http.Header       { return make(http.Header) }
+func (noOpRspWriter) Write([]byte) (int, error) { return 0, nil }
+func (noOpRspWriter) WriteHeader(int)           {}

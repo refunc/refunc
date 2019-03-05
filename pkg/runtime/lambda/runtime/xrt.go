@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -63,7 +64,7 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment
 	var extraCfg struct {
 		NoInject bool `json:"noInject,omitempty"`
 	}
-	json.Unmarshal(tpl.Spec.Extra, &extraCfg) // error is fine
+	json.Unmarshal(tpl.Spec.Extra, &extraCfg) // nolint:errcheck
 
 	// setting up containers
 	container := tpl.Spec.Container.DeepCopy()
@@ -151,6 +152,20 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment
 	return dep
 }
 
+var defaultHTTPClient = http.Client{
+	Transport: &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		DisableKeepAlives:   true,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+	},
+}
+
 // InitPod initialize given pod
 // Note: one should not assume that the workDir still persist after InitPod being called
 func (rt *lambda) InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, fndef *rfv1beta3.Funcdef, xenv *rfv1beta3.Xenv, workDir string) error {
@@ -175,10 +190,11 @@ func (rt *lambda) InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, fndef *
 
 	var rsp *http.Response
 	for i := 0; i < 1; i++ {
-		rsp, err = http.Post(fmt.Sprintf("http://%s:7788/init", pod.Status.PodIP), "application/json", bytes.NewReader(bts))
+		rsp, err = defaultHTTPClient.Post(fmt.Sprintf("http://%s:7788/init", pod.Status.PodIP), "application/json", bytes.NewReader(bts))
 		if err == nil {
 			break
 		}
+		<-time.After(100 * time.Millisecond)
 	}
 	if err != nil {
 		return err
@@ -391,5 +407,5 @@ func logStreamName(version string) string {
 }
 
 func init() {
-	runtime.Register(&lambda{})
+	runtime.Register(&lambda{}) //nolint:errheck
 }

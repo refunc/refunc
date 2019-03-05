@@ -65,6 +65,7 @@ func main() {
 }
 
 // bindFlags adds any flags that are common to all redatacli sub commands.
+// nolint:errcheck
 func bindFlags(flags *pflag.FlagSet) {
 	flagset := flag.NewFlagSet("klog", flag.ContinueOnError)
 	klog.InitFlags(flagset)

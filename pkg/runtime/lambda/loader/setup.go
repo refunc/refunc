@@ -51,6 +51,7 @@ func (ld *simpleLoader) loadFunc() (*types.Function, error) {
 }
 
 func (ld *simpleLoader) setup(fn *types.Function) (err error) {
+	// nolint:errcheck
 	withTmpFloder(func(folder string) {
 		// download
 		var filename string
@@ -74,10 +75,11 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 		// unpack source code
 		klog.Infof("(loader) unpacking %s to %s", filepath.Base(filename), ld.taskRoot())
 		err = archiver.Unarchive(filename, ld.taskRoot())
-		if os.Geteuid() == 0 {
+		if err == nil && os.Geteuid() == 0 {
 			klog.Info("(loader) fix task folder's permission chown slicer:497")
+			// nolint:errcheck
 			filepath.Walk(ld.taskRoot(), func(path string, f os.FileInfo, err error) error {
-				klog.V(3).Infof("(loader) chown for %q", path)
+				klog.V(4).Infof("(loader) chown for %q", path)
 				os.Chown(path, 498, 497)
 				return nil
 			})
