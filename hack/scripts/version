@@ -12,7 +12,6 @@ GIT_TAG=$(git tag -l --contains HEAD | head -n 1)
 if [[ -z "$DIRTY" && -n "$GIT_TAG" ]]; then
     VERSION=$GIT_TAG
     export REFUNC_VERSION=${VERSION}
-    export AGENT_VERSION=${VERSION}
     export LOADER_VERSION=${VERSION}
     export SIDECAR_VERSION=${VERSION}
     export CREDSYNCER_VERSION=${VERSION}
@@ -26,7 +25,6 @@ else
         $(get_version cmd/triggers/*.go) | my_sha1sum | cut -c 1-8
     )
     export REFUNC_VERSION=${_DEPS_VERSION}${DIRTY}
-    export AGENT_VERSION=$(echo $(get_version pkg/runtime/legacy/loader/*.go cmd/agent/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
     export LOADER_VERSION=$(echo $(get_version pkg/runtime/lambda/loader/*.go cmd/loader/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
     export SIDECAR_VERSION=$(echo $(get_version $(find pkg/sidecar -type f -name '*.go') $(find pkg/transport -type f -name '*.go') cmd/sidecar/*.go package/Dockerfile) | my_sha1sum | cut -c 1-8)${DIRTY}
     export CREDSYNCER_VERSION=$(get_version pkg/apis/refunc/v1beta3/*.go pkg/credsyncer/*.go cmd/credsyncer/*.go package/Dockerfile)${DIRTY}
@@ -37,7 +35,6 @@ IMAGE_REPO=${IMAGE_REPO:-refunc}
 export REGISTRY_PREFIX="${IMAGE_REPO}/${IMAGE_PREFIX}"
 
 export REFUNC_IMAGE="${REGISTRY_PREFIX}refunc:${REFUNC_VERSION}"
-export AGENT_IMAGE="${REGISTRY_PREFIX}agent:${AGENT_VERSION}"
 export LOADER_IMAGE="${REGISTRY_PREFIX}loader:${LOADER_VERSION}"
 export SIDECAR_IMAGE="${REGISTRY_PREFIX}sidecar:${SIDECAR_VERSION}"
 export CREDSYNCER_IMAGE="${REGISTRY_PREFIX}credsyncer:${CREDSYNCER_VERSION}"

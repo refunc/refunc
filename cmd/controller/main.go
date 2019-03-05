@@ -128,7 +128,6 @@ func NewCmd() *cobra.Command {
 				go func() {
 					defer wg.Done()
 					klog.Infof("Refunc  Version: %s", version.Version)
-					klog.Infof("Agent   Version: %s", version.AgentVersion)
 					klog.Infof("Loader  Version: %s", version.LoaderVersion)
 					klog.Infof("Sidecar Version: %s", version.SidecarVersion)
 					sc.Run(stopC)

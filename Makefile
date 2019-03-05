@@ -5,13 +5,12 @@ export BASH_ENV=hack/scripts/common
 $(shell source hack/scripts/version; env | grep -E '_VERSION|_IMAGE|REGISTRY_PREFIX' >.env)
 include .env
 
-BINS := refunc loader sidecar agent
+BINS := refunc loader sidecar
 
 GOOS := $(shell eval $$(go env); echo $${GOOS})
 ARCH := $(shell eval $$(go env); echo $${GOARCH})
 
 LD_FLAGS := -X github.com/refunc/refunc/pkg/version.Version=$(REFUNC_VERSION) \
--X github.com/refunc/refunc/pkg/version.AgentVersion=$(AGENT_VERSION) \
 -X github.com/refunc/refunc/pkg/version.LoaderVersion=$(LOADER_VERSION) \
 -X github.com/refunc/refunc/pkg/version.SidecarVersion=$(SIDECAR_VERSION)
 
@@ -66,9 +65,6 @@ loader-image: TARGET_IMAGE=$(LOADER_IMAGE)
 bin/$(GOOS)/sidecar: cmd/sidecar/*.go $(shell find pkg/sidecar -type f -name '*.go') $(shell find pkg/transport -type f -name '*.go')
 sidecar-image: TARGET_IMAGE=$(SIDECAR_IMAGE)
 
-bin/$(GOOS)/agent: cmd/agent/*.go pkg/runtime/legacy/loader/*.go
-agent-image: TARGET_IMAGE=$(AGENT_IMAGE)
-
 bin/$(GOOS)/credsyncer: pkg/apis/refunc/v1beta3/*.go pkg/credsyncer/*.go cmd/credsyncer/*.go
 credsyncer-image: TARGET_IMAGE=$(CREDSYNCER_IMAGE)
 
@@ -76,7 +72,6 @@ push: images
 	@log_info "start pushing images"; \
 	docker push $(LOADER_IMAGE) && \
 	docker push $(SIDECAR_IMAGE) && \
-	docker push $(AGENT_IMAGE) && \
 	docker push $(REFUNC_IMAGE); \
 	log_info "tag refunc to latest"; \
 	docker tag $(REFUNC_IMAGE) $(REGISTRY_PREFIX)refunc:latest && \

@@ -17,12 +17,10 @@ func helloWorld(request *messages.InvokeRequest) (result interface{}, err error)
 func clusterInfo(request *messages.InvokeRequest) (result interface{}, err error) {
 	return struct {
 		RefuncVersion  string `json:"refuncVersion"`
-		AgentVersion   string `json:"agentVersion,omitempty"`
 		LoaderVersion  string `json:"loaderVersion,omitempty"`
 		SidecarVersion string `json:"sidcarVersion,omitempty"`
 	}{
 		version.Version,
-		version.AgentVersion,
 		version.LoaderVersion,
 		version.SidecarVersion,
 	}, nil
