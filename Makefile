@@ -82,4 +82,4 @@ build-container:
 
 dockerbuild: build-container
 	@log_info "make bins in docker"
-	@docker run --rm -it -v $(shell pwd):/go/src/github.com/refunc/refunc refunc:build make bins
+	@docker run --rm -it -v $(shell pwd):/github.com/refunc/refunc refunc:build make bins

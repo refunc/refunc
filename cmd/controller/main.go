@@ -123,14 +123,14 @@ func NewCmd() *cobra.Command {
 			})
 
 			var wg sync.WaitGroup
-			run := func(stopC <-chan struct{}) {
+			run := func(ctx context.Context) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
 					klog.Infof("Refunc  Version: %s", version.Version)
 					klog.Infof("Loader  Version: %s", version.LoaderVersion)
 					klog.Infof("Sidecar Version: %s", version.SidecarVersion)
-					sc.Run(stopC)
+					sc.Run(ctx.Done())
 				}()
 
 				klog.Infof(`Received signal "%v", exiting...`, <-cmdutil.GetSysSig())
@@ -156,23 +156,25 @@ func NewCmd() *cobra.Command {
 				klog.Fatalf("Fail to create lock, %v", err)
 			}
 
-			leaderelection.RunOrDie(leaderelection.LeaderElectionConfig{
-				Lock:          rl,
-				LeaseDuration: 15 * time.Second,
-				RenewDeadline: 10 * time.Second,
-				RetryPeriod:   2 * time.Second,
-				Callbacks: leaderelection.LeaderCallbacks{
-					OnStartedLeading: run,
-					OnStoppedLeading: func() {
-						klog.Info("Stop leading, exit")
-						cancel()
-						wg.Wait()
-					},
-					OnNewLeader: func(identity string) {
-						klog.Infof("New leader %q detected", identity)
+			leaderelection.RunOrDie(ctx,
+				leaderelection.LeaderElectionConfig{
+					Lock:          rl,
+					LeaseDuration: 15 * time.Second,
+					RenewDeadline: 10 * time.Second,
+					RetryPeriod:   2 * time.Second,
+					Callbacks: leaderelection.LeaderCallbacks{
+						OnStartedLeading: run,
+						OnStoppedLeading: func() {
+							klog.Info("Stop leading, exit")
+							cancel()
+							wg.Wait()
+						},
+						OnNewLeader: func(identity string) {
+							klog.Infof("New leader %q detected", identity)
+						},
 					},
 				},
-			})
+			)
 		},
 	}
 	cmd.Flags().DurationVar(&config.GCInterval, "gc-interval", DefaultGCPeriod, "The interval bewteen each gc")
