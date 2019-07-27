@@ -25,6 +25,18 @@ func flushRW(rw http.ResponseWriter) {
 // GetPayload retreive args' payload from request object
 func GetPayload(req *http.Request) (args []byte, err error) {
 	if req.Method == http.MethodPost || req.Method == http.MethodDelete {
+		if req.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+			err = req.ParseForm()
+			if err != nil {
+				return
+			}
+			params := make(map[string]interface{})
+			for k, v := range req.Form {
+				params[k] = v[0]
+			}
+			args, err = json.Marshal(params)
+			return
+		}
 		args, err = ioutil.ReadAll(req.Body)
 		req.Body.Close()
 		if err != nil {
