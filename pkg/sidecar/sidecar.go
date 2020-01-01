@@ -2,6 +2,7 @@ package sidecar
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"path"
@@ -19,24 +20,26 @@ const APIVersion = "2018-06-01"
 
 // Engine is car engine implemented by different transport to commnicate with its operator
 type Engine interface {
+	// Name of current engine
+	Name() string
+
 	// Init engine, that function is loaded
 	Init(ctx context.Context, fn *types.Function) error
-	// NextC returns a signal channel block and wait for next request
-	NextC() <-chan struct{}
-	// InvokeRequest consume a request
-	InvokeRequest() *messages.InvokeRequest
-	// SetResult teminates a reqeust corresponding to its reqeust id (rid)
-	SetResult(rid string, body []byte, err error, conentType string) error
+	// RegisterServices exports engine's extended services, will mount at <prefix>/<Engine.Name()>
+	RegisterServices(router *mux.Router)
 	// ReportInitError runtime encourted a unrecoverable error notify operator to shutdown
 	ReportInitError(err error)
 	// ReportReady notify operator that we're ready
 	ReportReady()
 	// ReportExiting notify operator that we're exiting
 	ReportExiting()
-	// Name of current engine
-	Name() string
-	// RegisterServices exports engine's extended services, will mount at <prefix>/<Engine.Name()>
-	RegisterServices(router *mux.Router)
+
+	// NextC returns a signal channel block and wait for next request
+	NextC() <-chan struct{}
+	// InvokeRequest consume a request
+	InvokeRequest() *messages.InvokeRequest
+	// SetResult teminates a reqeust corresponding to its reqeust id (rid)
+	SetResult(rid string, body []byte, err error, conentType string) error
 }
 
 // Loader discovers and loads function runtime config
@@ -64,6 +67,8 @@ func NewCar(engine Engine, loader Loader) *Sidecar {
 	}
 }
 
+type serverFactor func() (serve func(http.Handler) error, shutdown func(context.Context) error)
+
 // Serve init sidecar waiting for function is ready and listens and serves at given address
 func (sc *Sidecar) Serve(ctx context.Context, address string) {
 	sc.start(ctx, func() (func(http.Handler) error, func(context.Context) error) {
@@ -89,7 +94,7 @@ func (sc *Sidecar) ServeListener(ctx context.Context, listener net.Listener) {
 	})
 }
 
-func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Handler) error, shutdown func(context.Context) error)) {
+func (sc *Sidecar) start(ctx context.Context, factory serverFactor) {
 	klog.V(2).Info("(sidecar) start waiting runtime config")
 	select {
 	case <-ctx.Done():
@@ -100,21 +105,20 @@ func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Ha
 
 	fn := sc.loader.Function()
 	if fn == nil {
-		// unrecoverable
-		klog.Fatal("(sidecar) cannot load runtime config")
+		sc.eng.ReportInitError(fmt.Errorf("sidecar: cannot load runtime config"))
+		return
 	}
 	sc.fn = fn
+
+	router := mux.NewRouter()
+	sc.reigsterHandlers(router)
+
+	ctx, sc.cancel = context.WithCancel(ctx)
 
 	if err := sc.eng.Init(ctx, fn); err != nil {
 		// unrecoverable
 		klog.Fatalf("(sidecar) cannot init engine, %v", err)
 	}
-
-	router := mux.NewRouter()
-
-	ctx, sc.cancel = context.WithCancel(ctx)
-	sc.reigsterHandlers(router)
-
 	sc.eng.RegisterServices(router.PathPrefix(path.Join("/", sc.eng.Name())).Subrouter())
 
 	// setup server
@@ -126,6 +130,8 @@ func (sc *Sidecar) start(ctx context.Context, factory func() (serve func(http.Ha
 	serve, shutdown := factory()
 
 	go func() {
+		defer sc.cancel()
+
 		if err := serve(handler); err != nil {
 			klog.Errorf("(sidecar) http exited with error, %v", err)
 		}

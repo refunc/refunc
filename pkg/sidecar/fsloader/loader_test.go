@@ -41,6 +41,7 @@ func TestNewLoader(t *testing.T) {
 			}()
 		}},
 		{"Create>Write>Load", false, func(f string, t *testing.T, c context.CancelFunc) {
+			// nolint
 			go func() {
 				<-time.After(time.Duration(rand.Intn(100)) * time.Millisecond)
 				file, err := os.OpenFile(filepath.Join(f, ConfigFile), os.O_RDWR|os.O_CREATE, 0755)
