@@ -67,3 +67,5 @@ require (
 	k8s.io/klog v0.3.0
 	k8s.io/kube-openapi v0.0.0-20181114233023-0317810137be // indirect
 )
+
+replace github.com/ulikunitz/xz v0.5.6 => github.com/ulikunitz/xz v0.5.10
