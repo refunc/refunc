@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	"github.com/nats-io/nuid"
 	observer "github.com/refunc/go-observer"
 	"github.com/refunc/refunc/pkg/messages"

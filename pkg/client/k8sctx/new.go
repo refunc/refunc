@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	refuncclient "github.com/refunc/refunc/pkg/client"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/utils/k8sutil"

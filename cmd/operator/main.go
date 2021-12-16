@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/klog"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	"github.com/refunc/refunc/pkg/credsyncer/verifier"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/utils/cmdutil"

@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/klog"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	"github.com/refunc/refunc/pkg/client"
 	"github.com/refunc/refunc/pkg/controllers/funcinst"
 	"github.com/refunc/refunc/pkg/controllers/xenv"

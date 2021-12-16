@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 )
 
 // GlobalNatsURLString returns nats url derived from current env

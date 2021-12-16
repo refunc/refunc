@@ -15,7 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	"github.com/refunc/refunc/pkg/builtins"
 	"github.com/refunc/refunc/pkg/messages"
