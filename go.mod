@@ -5,7 +5,6 @@ go 1.12
 require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/elazarl/goproxy v0.0.0-20190421051319-9d40249d3c2f // indirect
@@ -15,6 +14,7 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-ini/ini v1.42.0 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/google/btree v1.0.0 // indirect

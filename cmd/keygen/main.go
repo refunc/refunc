@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/utils/rfutil"
 )
