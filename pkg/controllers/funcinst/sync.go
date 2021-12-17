@@ -1,12 +1,14 @@
 package funcinst
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
@@ -214,7 +216,7 @@ func (rc *Controller) sync(key string) error {
 			}
 			hpa = rc.horizontalPodAutoscaler(fni, fndef, rs.GetName())
 			if err = retryOnceOnError(func() error {
-				hpa, err = rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(fni.Namespace).Create(hpa)
+				hpa, err = rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(fni.Namespace).Create(context.TODO(), hpa, metav1.CreateOptions{})
 				if apierrors.IsAlreadyExists(err) {
 					hpa, err = rc.getHorizontalPodAutoscaler(fni)
 				}
@@ -231,7 +233,7 @@ func (rc *Controller) sync(key string) error {
 			klog.V(3).Infof("(tc) updating horizontalPodAutoscaler for %q, from %d -> %d", fni.Name, hpa.Spec.MaxReplicas, fndef.Spec.MaxReplicas)
 			return retryOnceOnError(func() error {
 				hpa.Spec.MaxReplicas = fndef.Spec.MaxReplicas
-				hpa, err = rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(fni.Namespace).Update(hpa)
+				hpa, err = rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(fni.Namespace).Update(context.TODO(), hpa, metav1.UpdateOptions{})
 				if err != nil {
 					hpa, err = rc.getHorizontalPodAutoscaler(fni)
 				}

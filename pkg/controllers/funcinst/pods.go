@@ -1,13 +1,14 @@
 package funcinst
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
@@ -53,7 +54,7 @@ func (rc *Controller) handlePodChange(o interface{}) {
 	}
 }
 
-func (rc *Controller) relabelPodFromDeployment(fni *rfv1beta3.Funcinst, dep *v1beta1.Deployment) (*corev1.Pod, error) {
+func (rc *Controller) relabelPodFromDeployment(fni *rfv1beta3.Funcinst, dep *appsv1.Deployment) (*corev1.Pod, error) {
 	var pod *corev1.Pod
 
 	// select a running pod
@@ -85,10 +86,10 @@ func (rc *Controller) relabelPodFromDeployment(fni *rfv1beta3.Funcinst, dep *v1b
 		pod.Labels[rfv1beta3.LabelExecutorIsReady] = "false"
 		// set owner referneces to nil in order to adpot by executor rs
 		pod.OwnerReferences = nil
-		pod, err = rc.kclient.Core().Pods(fni.Namespace).Update(pod)
+		pod, err = rc.kclient.CoreV1().Pods(fni.Namespace).Update(context.TODO(), pod, metav1.UpdateOptions{})
 		if i < updateLabelRetries && err != nil {
 			// get pod from upstream, and try again
-			pod, err = rc.kclient.Core().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
+			pod, err = rc.kclient.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 			if err != nil {
 				// really bad happened
 				return nil, err
@@ -104,7 +105,7 @@ func (rc *Controller) initRuntimePod(fni *rfv1beta3.Funcinst, fndef *rfv1beta3.F
 	if !rt.IsPodReady(pod) {
 		return fmt.Errorf("rc: pod %q is not ready", rfutil.ExecutorPodName(pod))
 	}
-	if latest, e := rc.kclient.Core().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{}); e == nil {
+	if latest, e := rc.kclient.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{}); e == nil {
 		// retrive the latest object, to avoid re-init
 		pod = latest
 	}
@@ -129,10 +130,10 @@ func (rc *Controller) initRuntimePod(fni *rfv1beta3.Funcinst, fndef *rfv1beta3.F
 	pod = pod.DeepCopy()
 	for i := 0; ; i++ {
 		pod.Labels[rfv1beta3.LabelExecutorIsReady] = "true"
-		_, err := rc.kclient.Core().Pods(pod.Namespace).Update(pod)
+		_, err := rc.kclient.CoreV1().Pods(pod.Namespace).Update(context.TODO(), pod, metav1.UpdateOptions{})
 		if i < updateLabelRetries && err != nil {
 			// get pod from upstream, and try again
-			pod, err = rc.kclient.Core().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
+			pod, err = rc.kclient.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 			if err != nil {
 				// really bad happened
 				return err
@@ -150,7 +151,7 @@ func (rc *Controller) listPodsForFuncinst(fni *rfv1beta3.Funcinst, fromApiserver
 	var lister func(labels.Set) ([]*corev1.Pod, error)
 	if fromApiserver {
 		lister = func(s labels.Set) ([]*corev1.Pod, error) {
-			pl, err := rc.kclient.CoreV1().Pods(fni.Namespace).List(metav1.ListOptions{
+			pl, err := rc.kclient.CoreV1().Pods(fni.Namespace).List(context.TODO(), metav1.ListOptions{
 				LabelSelector: s.String(),
 			})
 			if err != nil {

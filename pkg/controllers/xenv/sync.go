@@ -1,11 +1,13 @@
 package xenv
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
@@ -58,7 +60,7 @@ func (rc *Controller) sync(key string) error {
 	if xenv.Spec.PoolSize > 0 {
 		if k8sutil.IsResourceNotFoundError(err) || (err == nil && dep == nil) {
 			dep := rc.getDeployment(rt, xenv)
-			_, err := rc.kclient.ExtensionsV1beta1().Deployments(xenv.Namespace).Create(dep)
+			_, err := rc.kclient.AppsV1().Deployments(xenv.Namespace).Create(context.TODO(), dep, metav1.CreateOptions{})
 			switch {
 			case apierrors.IsAlreadyExists(err):
 				klog.Infof("(xc) %s pool already created", xenv.Name)
@@ -76,9 +78,9 @@ func (rc *Controller) sync(key string) error {
 		tgt := rc.getDeployment(rt, xenv)
 		if dep.Spec.Template.Spec.InitContainers[0].Image != tgt.Spec.Template.Spec.InitContainers[0].Image {
 			// we need recreate pool
-			return rc.kclient.ExtensionsV1beta1().Deployments(dep.Namespace).Delete(dep.Name, k8sutil.CascadeDeleteOptions(0))
+			return rc.kclient.AppsV1().Deployments(dep.Namespace).Delete(context.TODO(), dep.Name, *k8sutil.CascadeDeleteOptions(0))
 		}
-		return k8sutil.PatchDeployment(rc.kclient, xenv.Namespace, dep.Name, func(d *v1beta1.Deployment) {
+		return k8sutil.PatchDeployment(rc.kclient, xenv.Namespace, dep.Name, func(d *appsv1.Deployment) {
 			for k, v := range tgt.Labels {
 				d.Labels[k] = v
 			}
@@ -90,7 +92,7 @@ func (rc *Controller) sync(key string) error {
 
 	if dep != nil {
 		klog.V(3).Infof("(xc) %s scale pool size to 0", key)
-		return rc.kclient.ExtensionsV1beta1().Deployments(dep.Namespace).Delete(dep.Name, k8sutil.CascadeDeleteOptions(0))
+		return rc.kclient.AppsV1().Deployments(dep.Namespace).Delete(context.TODO(), dep.Name, *k8sutil.CascadeDeleteOptions(0))
 	}
 
 	return nil
@@ -98,7 +100,7 @@ func (rc *Controller) sync(key string) error {
 
 var isController = true
 
-func (rc *Controller) getDeployment(r runtime.Interface, xenv *rfv1beta3.Xenv) *v1beta1.Deployment {
+func (rc *Controller) getDeployment(r runtime.Interface, xenv *rfv1beta3.Xenv) *appsv1.Deployment {
 	dep := r.GetDeploymentTemplate(xenv)
 	// override meta,
 	// using name starts with 0 ensure relabled pods always be the first element in backends

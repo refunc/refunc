@@ -1,6 +1,8 @@
 package funcinst
 
 import (
+	"context"
+
 	autoscalev2beta1 "k8s.io/api/autoscaling/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -9,7 +11,7 @@ import (
 )
 
 func (rc *Controller) getHorizontalPodAutoscaler(funcinst *rfv1beta3.Funcinst) (*autoscalev2beta1.HorizontalPodAutoscaler, error) {
-	as, err := rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(funcinst.Namespace).Get(funcinst.Name, metav1.GetOptions{})
+	as, err := rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(funcinst.Namespace).Get(context.TODO(), funcinst.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +53,7 @@ func (rc *Controller) horizontalPodAutoscaler(funcinst *rfv1beta3.Funcinst, fnde
 			ScaleTargetRef: autoscalev2beta1.CrossVersionObjectReference{
 				Kind:       "ReplicaSet",
 				Name:       rsName,
-				APIVersion: "extensions/v1beta1",
+				APIVersion: "apps/v1",
 			},
 		},
 	}

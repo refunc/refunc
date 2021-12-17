@@ -60,7 +60,7 @@ func getNatsPodName(client corev1.PodsGetter, namespace string) (string, error) 
 
 func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) {
 	options := metav1.ListOptions{LabelSelector: selector.String()}
-	pods, err := client.Pods(namespace).List(options)
+	pods, err := client.Pods(namespace).List(context.TODO(), options)
 	if err != nil {
 		return nil, err
 	}

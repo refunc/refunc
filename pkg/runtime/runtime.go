@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"sync"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	listerv1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
+	listerappsv1 "k8s.io/client-go/listers/apps/v1"
 
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	"github.com/refunc/refunc/pkg/utils/rfutil"
@@ -23,7 +23,7 @@ type Interface interface {
 	IsPodReady(pod *corev1.Pod) bool
 
 	// GetDeploymentTemplate returns a deployment of the runner
-	GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment
+	GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *appsv1.Deployment
 
 	// InitPod initialize given pod
 	// Note: one should not assume that the workDir still persist after InitPod being called
@@ -66,7 +66,7 @@ func ForXenv(xenv *rfv1beta3.Xenv) Interface {
 }
 
 // GetXenvPoolDeployment returns runner template deployment for given refunc
-func GetXenvPoolDeployment(lister listerv1beta1.DeploymentLister, xenv *rfv1beta3.Xenv) (*v1beta1.Deployment, error) {
+func GetXenvPoolDeployment(lister listerappsv1.DeploymentLister, xenv *rfv1beta3.Xenv) (*appsv1.Deployment, error) {
 	if xenv == nil {
 		return nil, errors.New("runtime: xenv is nil")
 	}

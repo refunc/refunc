@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -16,8 +16,10 @@ import (
 )
 
 // FuncinstLister helps list Funcinsts.
+// All objects returned here must be treated as read-only.
 type FuncinstLister interface {
 	// List lists all Funcinsts in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Funcinst, err error)
 	// Funcinsts returns an object that can list and get Funcinsts.
 	Funcinsts(namespace string) FuncinstNamespaceLister
@@ -48,10 +50,13 @@ func (s *funcinstLister) Funcinsts(namespace string) FuncinstNamespaceLister {
 }
 
 // FuncinstNamespaceLister helps list and get Funcinsts.
+// All objects returned here must be treated as read-only.
 type FuncinstNamespaceLister interface {
 	// List lists all Funcinsts in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Funcinst, err error)
 	// Get retrieves the Funcinst from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta3.Funcinst, error)
 	FuncinstNamespaceListerExpansion
 }

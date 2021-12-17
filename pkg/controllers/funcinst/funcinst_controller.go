@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	appsv1 "k8s.io/client-go/listers/apps/v1"
 	autoscalev2beta1 "k8s.io/client-go/listers/autoscaling/v2beta1"
 	corev1 "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/listers/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -36,7 +36,7 @@ type Controller struct {
 	refuncInformers rfinformers.SharedInformerFactory
 
 	hpaLister        autoscalev2beta1.HorizontalPodAutoscalerLister
-	deploymentLister v1beta1.DeploymentLister
+	deploymentLister appsv1.DeploymentLister
 	podLister        corev1.PodLister
 
 	funcdefLister  rflistersv1.FuncdefLister
@@ -67,7 +67,7 @@ func NewController(
 	r.refuncInformers = refuncInformers
 
 	// config listers
-	r.deploymentLister = kubeinformers.Extensions().V1beta1().Deployments().Lister()
+	r.deploymentLister = kubeinformers.Apps().V1().Deployments().Lister()
 	r.podLister = kubeinformers.Core().V1().Pods().Lister()
 	r.hpaLister = kubeinformers.Autoscaling().V2beta1().HorizontalPodAutoscalers().Lister()
 
@@ -121,9 +121,9 @@ func NewController(
 		r.refuncInformers.Refunc().V1beta3().Triggers().Informer().HasSynced,
 		r.refuncInformers.Refunc().V1beta3().Xenvs().Informer().HasSynced,
 		r.kubeInformers.Core().V1().Pods().Informer().HasSynced,
-		r.kubeInformers.Extensions().V1beta1().ReplicaSets().Informer().HasSynced,
+		r.kubeInformers.Apps().V1().ReplicaSets().Informer().HasSynced,
 		r.kubeInformers.Autoscaling().V1().HorizontalPodAutoscalers().Informer().HasSynced,
-		r.kubeInformers.Extensions().V1beta1().Deployments().Informer().HasSynced,
+		r.kubeInformers.Apps().V1().Deployments().Informer().HasSynced,
 	}
 
 	return r, nil
