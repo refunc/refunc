@@ -20,8 +20,8 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/minio/minio-go v6.0.14+incompatible
-	github.com/nats-io/nats-server/v2 v2.6.6 // indirect
-	github.com/nats-io/nats.go v1.13.1-0.20211122170419-d7c1d78a50fc
+	github.com/nats-io/nats-server/v2 v2.6.2 // indirect
+	github.com/nats-io/nats.go v1.13.0
 	github.com/nats-io/nuid v1.0.1
 	github.com/nwaples/rardecode v1.0.0 // indirect
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
