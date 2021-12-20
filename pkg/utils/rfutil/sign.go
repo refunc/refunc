@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 )
 
 // well known errros

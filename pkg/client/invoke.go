@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/utils"
 )

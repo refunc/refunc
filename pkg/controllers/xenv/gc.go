@@ -1,9 +1,10 @@
 package xenv
 
 import (
+	"context"
 	"time"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -95,7 +96,7 @@ func (rc *Controller) cleanup(xenv *rfv1beta3.Xenv) error {
 		klog.Warningf("(xc:gc) cannot find deployment for %s/%s, %v", xenv.Namespace, xenv.Name, err)
 	}
 	if dep != nil {
-		return rc.kclient.Extensions().Deployments(dep.Namespace).Delete(dep.Name, k8sutil.CascadeDeleteOptions(0))
+		return rc.kclient.AppsV1().Deployments(dep.Namespace).Delete(context.TODO(), dep.Name, *k8sutil.CascadeDeleteOptions(0))
 	}
 
 	return nil
@@ -103,10 +104,10 @@ func (rc *Controller) cleanup(xenv *rfv1beta3.Xenv) error {
 
 func (rc *Controller) collectOrphanDeployments() error {
 	return cache.ListAll(
-		rc.kubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
+		rc.kubeInformers.Apps().V1().Deployments().Informer().GetIndexer(),
 		labels.Everything(),
 		func(m interface{}) {
-			rs, ok := m.(*v1beta1.Deployment)
+			rs, ok := m.(*appsv1.Deployment)
 			if !ok {
 				// it's cache.DeletedFinalStateUnknown
 				return
@@ -119,7 +120,7 @@ func (rc *Controller) collectOrphanDeployments() error {
 				if _, err := rc.xenvLister.Xenvs(rs.Namespace).Get(ctlRef.Name); k8sutil.IsResourceNotFoundError(err) && rs.DeletionTimestamp == nil {
 					klog.V(3).Infof("(xc:gc) cleanup orphan dep %s/%s", rs.Namespace, rs.Name)
 					err = retryOnceOnError(func() error {
-						err = rc.kclient.Extensions().Deployments(rs.Namespace).Delete(rs.Name, k8sutil.CascadeDeleteOptions(0))
+						err = rc.kclient.AppsV1().Deployments(rs.Namespace).Delete(context.TODO(), rs.Name, *k8sutil.CascadeDeleteOptions(0))
 						if k8sutil.IsResourceNotFoundError(err) {
 							return nil
 						}

@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/refunc/refunc/cmd/controller"
+	"github.com/refunc/refunc/cmd/operator"
 	"github.com/refunc/refunc/cmd/play"
 	"github.com/refunc/refunc/cmd/triggers"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/flagtools"
@@ -45,6 +46,7 @@ func main() {
 	pflagenv.ParseSet(pflagenv.Prefix, cmd.PersistentFlags())
 
 	cmd.AddCommand(wrapcobra.Wrap(controller.NewCmd()))
+	cmd.AddCommand(wrapcobra.Wrap(operator.NewCmd()))
 	cmd.AddCommand(wrapcobra.Wrap(triggers.NewCmd()))
 	cmd.AddCommand(wrapcobra.Wrap(play.NewCmd()))
 

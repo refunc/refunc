@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 )
 
 // DefaultContext for current env

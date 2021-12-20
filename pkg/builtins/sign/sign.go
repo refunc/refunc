@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/refunc/refunc/pkg/builtins"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/utils/rfutil"

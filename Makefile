@@ -83,3 +83,8 @@ build-container:
 dockerbuild: build-container
 	@log_info "make bins in docker"
 	@docker run --rm -it -v $(shell pwd):/github.com/refunc/refunc refunc:build make bins
+
+code-gen:
+	rm -rf pkg/apis/refunc/v1beta3/*.deepcopy.go
+	rm -rf pkg/generated
+	bash ./hack/codegen/update-generated.sh

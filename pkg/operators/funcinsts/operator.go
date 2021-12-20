@@ -158,7 +158,7 @@ func (r *Operator) handleFuncdefAdd(o interface{}) {
 		},
 	}
 	err = retryOnceOnError(func() error {
-		_, err := r.RefuncClient.RefuncV1beta3().Triggers(fndef.Namespace).Create(trigger)
+		_, err := r.RefuncClient.RefuncV1beta3().Triggers(fndef.Namespace).Create(context.TODO(), trigger, metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(err) {
 			return nil
 		}
@@ -197,7 +197,7 @@ func (r *Operator) handleFuncdefDelete(o interface{}) {
 		if val, ok := trigger.Labels[labelAutoCreated]; ok && val == "true" {
 			klog.V(3).Infof("(funcinsts) delete auto generated trigger %s", k8sKey(trigger))
 			err := retryOnceOnError(func() error {
-				err := r.RefuncClient.RefuncV1beta3().Triggers(trigger.Namespace).Delete(trigger.Name, k8sutil.CascadeDeleteOptions(0))
+				err := r.RefuncClient.RefuncV1beta3().Triggers(trigger.Namespace).Delete(context.TODO(), trigger.Name, *k8sutil.CascadeDeleteOptions(0))
 				if apierrors.IsNotFound(err) {
 					return nil
 				}

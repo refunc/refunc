@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 )
 

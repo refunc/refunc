@@ -1,12 +1,13 @@
 package funcinst
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	autoscalev1 "k8s.io/api/autoscaling/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -115,7 +116,7 @@ func (rc *Controller) collectGarbadge() {
 				return
 			}
 
-			err = rc.rclient.RefuncV1beta3().Funcinsts(funcinst.Namespace).Delete(funcinst.Name, k8sutil.CascadeDeleteOptions(0))
+			err = rc.rclient.RefuncV1beta3().Funcinsts(funcinst.Namespace).Delete(context.TODO(), funcinst.Name, *k8sutil.CascadeDeleteOptions(0))
 			if err != nil && !k8sutil.IsResourceNotFoundError(err) {
 				klog.Errorf("(tc:gc) fail to delete %q, %v", key, err)
 				return
@@ -147,7 +148,7 @@ func (rc *Controller) cleanup(funcinst *rfv1beta3.Funcinst) error {
 		klog.Warningf("(tc:gc) cannot find replicas for %s/%s, %v", funcinst.Namespace, funcinst.Name, err)
 	}
 	if rs != nil {
-		return rc.kclient.Extensions().ReplicaSets(rs.Namespace).Delete(rs.Name, k8sutil.CascadeDeleteOptions(0))
+		return rc.kclient.AppsV1().ReplicaSets(rs.Namespace).Delete(context.TODO(), rs.Name, *k8sutil.CascadeDeleteOptions(0))
 	}
 
 	hpa, err := rc.getHorizontalPodAutoscaler(funcinst)
@@ -155,7 +156,7 @@ func (rc *Controller) cleanup(funcinst *rfv1beta3.Funcinst) error {
 		klog.Warningf("(tc:gc) cannot find HPA for %s/%s, %v", funcinst.Namespace, funcinst.Name, err)
 	}
 	if hpa != nil {
-		return rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(hpa.Namespace).Delete(hpa.Name, k8sutil.CascadeDeleteOptions(0))
+		return rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(hpa.Namespace).Delete(context.TODO(), hpa.Name, *k8sutil.CascadeDeleteOptions(0))
 	}
 
 	return nil
@@ -163,10 +164,10 @@ func (rc *Controller) cleanup(funcinst *rfv1beta3.Funcinst) error {
 
 func (rc *Controller) collectOrphanReplicas() error {
 	return cache.ListAll(
-		rc.kubeInformers.Extensions().V1beta1().ReplicaSets().Informer().GetIndexer(),
+		rc.kubeInformers.Apps().V1().ReplicaSets().Informer().GetIndexer(),
 		labels.Everything(),
 		func(m interface{}) {
-			rs, ok := m.(*v1beta1.ReplicaSet)
+			rs, ok := m.(*appsv1.ReplicaSet)
 			if !ok {
 				// it's cache.DeletedFinalStateUnknown
 				return
@@ -178,7 +179,7 @@ func (rc *Controller) collectOrphanReplicas() error {
 				if fni, err := rc.funcinstLister.Funcinsts(rs.Namespace).Get(ctlRef.Name); (fni != nil && fni.Spec.FuncdefRef == nil) || (k8sutil.IsResourceNotFoundError(err) && rs.DeletionTimestamp == nil) {
 					klog.V(3).Infof("(tc:gc) cleanup orphan rs %s/%s", rs.Namespace, rs.Name)
 					err = retryOnceOnError(func() error {
-						err = rc.kclient.Extensions().ReplicaSets(rs.Namespace).Delete(rs.Name, k8sutil.CascadeDeleteOptions(0))
+						err = rc.kclient.AppsV1().ReplicaSets(rs.Namespace).Delete(context.TODO(), rs.Name, *k8sutil.CascadeDeleteOptions(0))
 						if k8sutil.IsResourceNotFoundError(err) {
 							return nil
 						}
@@ -211,7 +212,7 @@ func (rc *Controller) collectOrphanHPAs() error {
 				if fni, err := rc.funcinstLister.Funcinsts(as.Namespace).Get(ctlRef.Name); (fni != nil && fni.Spec.FuncdefRef == nil) || (k8sutil.IsResourceNotFoundError(err) && as.DeletionTimestamp == nil) {
 					klog.V(3).Infof("(tc:gc) cleanup orphan HPA %s/%s", as.Namespace, as.Name)
 					err = retryOnceOnError(func() error {
-						err = rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(as.Namespace).Delete(as.Name, k8sutil.CascadeDeleteOptions(0))
+						err = rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(as.Namespace).Delete(context.TODO(), as.Name, *k8sutil.CascadeDeleteOptions(0))
 						if k8sutil.IsResourceNotFoundError(err) {
 							return nil
 						}

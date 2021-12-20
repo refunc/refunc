@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -9,6 +9,8 @@ TODO: choose a opensource licence.
 package fake
 
 import (
+	"context"
+
 	v1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -29,7 +31,7 @@ var xenvsResource = schema.GroupVersionResource{Group: "refunc.refunc.io", Versi
 var xenvsKind = schema.GroupVersionKind{Group: "refunc.refunc.io", Version: "v1beta3", Kind: "Xenv"}
 
 // Get takes name of the xenv, and returns the corresponding xenv object, and an error if there is any.
-func (c *FakeXenvs) Get(name string, options v1.GetOptions) (result *v1beta3.Xenv, err error) {
+func (c *FakeXenvs) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta3.Xenv, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(xenvsResource, c.ns, name), &v1beta3.Xenv{})
 
@@ -40,7 +42,7 @@ func (c *FakeXenvs) Get(name string, options v1.GetOptions) (result *v1beta3.Xen
 }
 
 // List takes label and field selectors, and returns the list of Xenvs that match those selectors.
-func (c *FakeXenvs) List(opts v1.ListOptions) (result *v1beta3.XenvList, err error) {
+func (c *FakeXenvs) List(ctx context.Context, opts v1.ListOptions) (result *v1beta3.XenvList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(xenvsResource, xenvsKind, c.ns, opts), &v1beta3.XenvList{})
 
@@ -62,14 +64,14 @@ func (c *FakeXenvs) List(opts v1.ListOptions) (result *v1beta3.XenvList, err err
 }
 
 // Watch returns a watch.Interface that watches the requested xenvs.
-func (c *FakeXenvs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeXenvs) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(xenvsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a xenv and creates it.  Returns the server's representation of the xenv, and an error, if there is any.
-func (c *FakeXenvs) Create(xenv *v1beta3.Xenv) (result *v1beta3.Xenv, err error) {
+func (c *FakeXenvs) Create(ctx context.Context, xenv *v1beta3.Xenv, opts v1.CreateOptions) (result *v1beta3.Xenv, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(xenvsResource, c.ns, xenv), &v1beta3.Xenv{})
 
@@ -80,7 +82,7 @@ func (c *FakeXenvs) Create(xenv *v1beta3.Xenv) (result *v1beta3.Xenv, err error)
 }
 
 // Update takes the representation of a xenv and updates it. Returns the server's representation of the xenv, and an error, if there is any.
-func (c *FakeXenvs) Update(xenv *v1beta3.Xenv) (result *v1beta3.Xenv, err error) {
+func (c *FakeXenvs) Update(ctx context.Context, xenv *v1beta3.Xenv, opts v1.UpdateOptions) (result *v1beta3.Xenv, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(xenvsResource, c.ns, xenv), &v1beta3.Xenv{})
 
@@ -91,7 +93,7 @@ func (c *FakeXenvs) Update(xenv *v1beta3.Xenv) (result *v1beta3.Xenv, err error)
 }
 
 // Delete takes name of the xenv and deletes it. Returns an error if one occurs.
-func (c *FakeXenvs) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeXenvs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(xenvsResource, c.ns, name), &v1beta3.Xenv{})
 
@@ -99,17 +101,17 @@ func (c *FakeXenvs) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeXenvs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(xenvsResource, c.ns, listOptions)
+func (c *FakeXenvs) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(xenvsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta3.XenvList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched xenv.
-func (c *FakeXenvs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta3.Xenv, err error) {
+func (c *FakeXenvs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta3.Xenv, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(xenvsResource, c.ns, name, data, subresources...), &v1beta3.Xenv{})
+		Invokes(testing.NewPatchSubresourceAction(xenvsResource, c.ns, name, pt, data, subresources...), &v1beta3.Xenv{})
 
 	if obj == nil {
 		return nil, err

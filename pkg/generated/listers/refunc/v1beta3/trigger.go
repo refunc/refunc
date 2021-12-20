@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -16,8 +16,10 @@ import (
 )
 
 // TriggerLister helps list Triggers.
+// All objects returned here must be treated as read-only.
 type TriggerLister interface {
 	// List lists all Triggers in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Trigger, err error)
 	// Triggers returns an object that can list and get Triggers.
 	Triggers(namespace string) TriggerNamespaceLister
@@ -48,10 +50,13 @@ func (s *triggerLister) Triggers(namespace string) TriggerNamespaceLister {
 }
 
 // TriggerNamespaceLister helps list and get Triggers.
+// All objects returned here must be treated as read-only.
 type TriggerNamespaceLister interface {
 	// List lists all Triggers in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Trigger, err error)
 	// Get retrieves the Trigger from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta3.Trigger, error)
 	TriggerNamespaceListerExpansion
 }

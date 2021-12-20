@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	refuncclient "github.com/refunc/refunc/pkg/client"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/utils/k8sutil"
@@ -60,7 +60,7 @@ func getNatsPodName(client corev1.PodsGetter, namespace string) (string, error) 
 
 func getFirstRunningPod(client corev1.PodsGetter, namespace string, selector labels.Selector) (*v1.Pod, error) {
 	options := metav1.ListOptions{LabelSelector: selector.String()}
-	pods, err := client.Pods(namespace).List(options)
+	pods, err := client.Pods(namespace).List(context.TODO(), options)
 	if err != nil {
 		return nil, err
 	}

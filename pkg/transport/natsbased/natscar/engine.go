@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	nats "github.com/nats-io/go-nats"
+	nats "github.com/nats-io/nats.go"
 	observer "github.com/refunc/go-observer"
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/messages"

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -31,7 +31,7 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 		}
 	}
 
-	cs := &Clientset{}
+	cs := &Clientset{tracker: o}
 	cs.discovery = &fakediscovery.FakeDiscovery{Fake: &cs.Fake}
 	cs.AddReactor("*", "*", testing.ObjectReaction(o))
 	cs.AddWatchReactor("*", func(action testing.Action) (handled bool, ret watch.Interface, err error) {
@@ -53,20 +53,20 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 type Clientset struct {
 	testing.Fake
 	discovery *fakediscovery.FakeDiscovery
+	tracker   testing.ObjectTracker
 }
 
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 	return c.discovery
 }
 
+func (c *Clientset) Tracker() testing.ObjectTracker {
+	return c.tracker
+}
+
 var _ clientset.Interface = &Clientset{}
 
 // RefuncV1beta3 retrieves the RefuncV1beta3Client
 func (c *Clientset) RefuncV1beta3() refuncv1beta3.RefuncV1beta3Interface {
-	return &fakerefuncv1beta3.FakeRefuncV1beta3{Fake: &c.Fake}
-}
-
-// Refunc retrieves the RefuncV1beta3Client
-func (c *Clientset) Refunc() refuncv1beta3.RefuncV1beta3Interface {
 	return &fakerefuncv1beta3.FakeRefuncV1beta3{Fake: &c.Fake}
 }

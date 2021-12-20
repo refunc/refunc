@@ -1,13 +1,41 @@
 #!/usr/bin/env bash
 
+# Copyright 2017 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 set -o errexit
 set -o nounset
 set -o pipefail
 
-vendor/k8s.io/code-generator/generate-groups.sh \
-  "all" \
-  "github.com/refunc/refunc/pkg/generated" \
-  "github.com/refunc/refunc/pkg/apis" \
-  "refunc:v1beta3" \
-  --go-header-file "./hack/codegen/boilerplate.go.txt" \
-  $@
+SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/../..
+CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
+
+TEMP_DIR=$(mktemp -d)
+cleanup() {
+    echo ">> Removing ${TEMP_DIR}"
+    rm -rf ${TEMP_DIR}
+}
+trap "cleanup" EXIT SIGINT
+
+echo ">> Temporary output directory ${TEMP_DIR}"
+
+bash "${CODEGEN_PKG}"/generate-groups.sh "deepcopy,client,informer,lister" \
+  github.com/refunc/refunc/pkg/generated \
+  github.com/refunc/refunc/pkg/apis \
+  refunc:v1beta3 \
+  --output-base "${TEMP_DIR}" \
+  --go-header-file "${SCRIPT_ROOT}"/hack/codegen/boilerplate.go.txt
+
+# Copy everything back.
+cp -r "${TEMP_DIR}/github.com/refunc/refunc/." "${SCRIPT_ROOT}/"

@@ -143,6 +143,7 @@ func NewCmd() *cobra.Command {
 				namespace,
 				"refunc-controllers",
 				sc.Configs().KubeClient().CoreV1(),
+				sc.Configs().KubeClient().CoordinationV1(),
 				resourcelock.ResourceLockConfig{
 					Identity: id,
 					EventRecorder: k8sutil.CreateRecorder(
@@ -196,7 +197,7 @@ func ensureNSCreated(cfg *rest.Config) {
 	var namespace v1.Namespace
 	namespace.SetName(ns)
 
-	if _, err := clientset.CoreV1().Namespaces().Create(&namespace); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := clientset.CoreV1().Namespaces().Create(context.TODO(), &namespace, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		klog.Fatalf("Failed to ensuring namespaces created, %v", err)
 	}
 }
@@ -216,7 +217,7 @@ func ensureCRDsCreated(cfg *rest.Config) {
 
 	crdcli := clientset.ApiextensionsV1beta1().CustomResourceDefinitions()
 	for _, crd := range rfv1beta3.CRDs {
-		if _, err = crdcli.Create(crd.CRD); err != nil && !apierrors.IsAlreadyExists(err) {
+		if _, err = crdcli.Create(context.TODO(), crd.CRD, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 			return
 		}
 		// wait for ready
@@ -231,7 +232,7 @@ func ensureCRDsCreated(cfg *rest.Config) {
 func waitCRDEstablished(clientset *apiextensionsclient.Clientset, name string) error {
 	// wait for CRD being established
 	return wait.Poll(100*time.Millisecond, 60*time.Second, func() (bool, error) {
-		crd, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(name, metav1.GetOptions{})
+		crd, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

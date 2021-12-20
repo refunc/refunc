@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -16,8 +16,10 @@ import (
 )
 
 // XenvLister helps list Xenvs.
+// All objects returned here must be treated as read-only.
 type XenvLister interface {
 	// List lists all Xenvs in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Xenv, err error)
 	// Xenvs returns an object that can list and get Xenvs.
 	Xenvs(namespace string) XenvNamespaceLister
@@ -48,10 +50,13 @@ func (s *xenvLister) Xenvs(namespace string) XenvNamespaceLister {
 }
 
 // XenvNamespaceLister helps list and get Xenvs.
+// All objects returned here must be treated as read-only.
 type XenvNamespaceLister interface {
 	// List lists all Xenvs in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Xenv, err error)
 	// Get retrieves the Xenv from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta3.Xenv, error)
 	XenvNamespaceListerExpansion
 }

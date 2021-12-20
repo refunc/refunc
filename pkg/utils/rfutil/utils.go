@@ -1,6 +1,7 @@
 package rfutil
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -129,7 +130,7 @@ func UpdateFuncinstStatus(c rfcliv1.FuncinstInterface, funcinst *rfv1beta3.Funci
 		}
 
 		t.Status = status
-		updatedFni, updateErr = c.Update(t)
+		updatedFni, updateErr = c.Update(context.TODO(), t, metav1.UpdateOptions{})
 		if updateErr == nil {
 			klog.V(3).Infof("updated %s", msg(updatedFni, i))
 			return updatedFni, nil
@@ -139,7 +140,7 @@ func UpdateFuncinstStatus(c rfcliv1.FuncinstInterface, funcinst *rfv1beta3.Funci
 			break
 		}
 		// Update the Refunc with the latest resource version for the next poll
-		if t, getErr = c.Get(t.Name, metav1.GetOptions{}); getErr != nil {
+		if t, getErr = c.Get(context.TODO(), t.Name, metav1.GetOptions{}); getErr != nil {
 			// If the GET fails we can't trust status anymore. This error
 			// is bound to be more interesting than the update failure.
 			klog.V(3).Infof("failed updating %s, %v", msg(t, i), getErr)

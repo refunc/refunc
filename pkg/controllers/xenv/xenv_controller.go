@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/listers/extensions/v1beta1"
+	listerappsv1 "k8s.io/client-go/listers/apps/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -33,7 +33,7 @@ type Controller struct {
 	kubeInformers   k8sinformers.SharedInformerFactory
 	refuncInformers rfinformers.SharedInformerFactory
 
-	deploymentLister v1beta1.DeploymentLister
+	deploymentLister listerappsv1.DeploymentLister
 
 	funcdefLister rflistersv1.FuncdefLister
 	xenvLister    rflistersv1.XenvLister
@@ -61,7 +61,7 @@ func NewController(
 	r.refuncInformers = refuncInformers
 
 	// config listers
-	r.deploymentLister = kubeinformers.Extensions().V1beta1().Deployments().Lister()
+	r.deploymentLister = kubeinformers.Apps().V1().Deployments().Lister()
 
 	r.funcdefLister = refuncInformers.Refunc().V1beta3().Funcdeves().Lister()
 	r.xenvLister = refuncInformers.Refunc().V1beta3().Xenvs().Lister()
@@ -81,7 +81,7 @@ func NewController(
 		}
 	}
 
-	kubeinformers.Extensions().V1beta1().Deployments().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	kubeinformers.Apps().V1().Deployments().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    r.handleDeploymentChange,
 		DeleteFunc: r.handleDeploymentChange,
 	})
@@ -101,7 +101,7 @@ func NewController(
 	r.wantedInformers = []cache.InformerSynced{
 		r.refuncInformers.Refunc().V1beta3().Funcdeves().Informer().HasSynced,
 		r.refuncInformers.Refunc().V1beta3().Xenvs().Informer().HasSynced,
-		r.kubeInformers.Extensions().V1beta1().Deployments().Informer().HasSynced,
+		r.kubeInformers.Apps().V1().Deployments().Informer().HasSynced,
 	}
 
 	return r, nil

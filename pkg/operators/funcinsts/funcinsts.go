@@ -1,6 +1,7 @@
 package funcinsts
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -131,7 +132,7 @@ func (r *Operator) GetFuncInstance(trigger *rfv1beta3.Trigger) (*rfv1beta3.Funci
 
 	// try to create and update created fni
 	err = retryOnceOnError(func() error {
-		newFni, err := r.RefuncClient.RefuncV1beta3().Funcinsts(ns).Create(fni)
+		newFni, err := r.RefuncClient.RefuncV1beta3().Funcinsts(ns).Create(context.TODO(), fni, metav1.CreateOptions{})
 		if err == nil {
 			fni = newFni
 			return nil
@@ -241,11 +242,11 @@ func (r *Operator) tappingFuncinsts(stopC <-chan struct{}) {
 			// nolint:errcheck
 			retryOnceOnError(func() error {
 				fni.Status.ActiveCondition().LastUpdateTime = activeFuncs[key].Format(time.RFC3339)
-				if fni, err = r.RefuncClient.RefuncV1beta3().Funcinsts(ns).Update(fni); err == nil {
+				if fni, err = r.RefuncClient.RefuncV1beta3().Funcinsts(ns).Update(context.TODO(), fni, metav1.UpdateOptions{}); err == nil {
 					return nil
 				}
 				// Update the Refunc with the latest resource version for the next poll
-				if updated, err := r.RefuncClient.RefuncV1beta3().Funcinsts(ns).Get(name, metav1.GetOptions{}); err != nil {
+				if updated, err := r.RefuncClient.RefuncV1beta3().Funcinsts(ns).Get(context.TODO(), name, metav1.GetOptions{}); err != nil {
 					// If the GET fails we can't trust status anymore. This error
 					// is bound to be more interesting than the update failure.
 					klog.V(3).Infof("(tapping) failed updating %q, %v", key, err)

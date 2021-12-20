@@ -18,14 +18,15 @@ package k8sutil
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -102,21 +103,21 @@ func CreatePatch(o, n, datastruct interface{}) ([]byte, error) {
 	return strategicpatch.CreateTwoWayMergePatch(oldData, newData, datastruct)
 }
 
-func PatchDeployment(kubecli kubernetes.Interface, namespace, name string, updateFunc func(*v1beta1.Deployment)) error {
-	od, err := kubecli.ExtensionsV1beta1().Deployments(namespace).Get(name, metav1.GetOptions{})
+func PatchDeployment(kubecli kubernetes.Interface, namespace, name string, updateFunc func(*appsv1.Deployment)) error {
+	od, err := kubecli.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	nd := od.DeepCopy()
 	updateFunc(nd)
-	patchData, err := CreatePatch(od, nd, v1beta1.Deployment{})
+	patchData, err := CreatePatch(od, nd, appsv1.Deployment{})
 	if err != nil {
 		return err
 	}
 	if len(patchData) == 0 {
 		return nil
 	}
-	_, err = kubecli.ExtensionsV1beta1().Deployments(namespace).Patch(name, types.StrategicMergePatchType, patchData)
+	_, err = kubecli.AppsV1().Deployments(namespace).Patch(context.TODO(), name, types.StrategicMergePatchType, patchData, metav1.PatchOptions{})
 	return err
 }
 
@@ -132,20 +133,20 @@ func CascadeDeleteOptions(gracePeriodSeconds int64) *metav1.DeleteOptions {
 
 // CreateOrUpdateService creates or updates the given service
 func CreateOrUpdateService(sclient clientv1.ServiceInterface, svc *corev1.Service) error {
-	service, err := sclient.Get(svc.Name, metav1.GetOptions{})
+	service, err := sclient.Get(context.TODO(), svc.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("k8sutil: retrieving service object failed, %v", err)
 	}
 
 	if apierrors.IsNotFound(err) {
-		_, err = sclient.Create(svc)
+		_, err = sclient.Create(context.TODO(), svc, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("k8sutil: creating service object failed, %v", err)
 		}
 	} else {
 		svc.ResourceVersion = service.ResourceVersion
 		svc.Spec.ClusterIP = service.Spec.ClusterIP // since clusterIP is immutable
-		_, err := sclient.Update(svc)
+		_, err := sclient.Update(context.TODO(), svc, metav1.UpdateOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("k8sutil: updating service object failed, %v", err)
 		}
@@ -156,19 +157,19 @@ func CreateOrUpdateService(sclient clientv1.ServiceInterface, svc *corev1.Servic
 
 // CreateOrUpdateEndpoints creates or updates the endpoints
 func CreateOrUpdateEndpoints(eclient clientv1.EndpointsInterface, eps *corev1.Endpoints) error {
-	endpoints, err := eclient.Get(eps.Name, metav1.GetOptions{})
+	endpoints, err := eclient.Get(context.TODO(), eps.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("k8sutil: retrieving existing kubelet service object failed, %v", err)
 	}
 
 	if apierrors.IsNotFound(err) {
-		_, err = eclient.Create(eps)
+		_, err = eclient.Create(context.TODO(), eps, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("k8sutil: creating kubelet enpoints object failed, %v", err)
 		}
 	} else {
 		eps.ResourceVersion = endpoints.ResourceVersion
-		_, err = eclient.Update(eps)
+		_, err = eclient.Update(context.TODO(), eps, metav1.UpdateOptions{})
 		if err != nil {
 			return fmt.Errorf("k8sutil: updating kubelet enpoints object failed, %v", err)
 		}
@@ -181,6 +182,6 @@ func CreateOrUpdateEndpoints(eclient clientv1.EndpointsInterface, eps *corev1.En
 func CreateRecorder(kubecli kubernetes.Interface, name, namespace string) record.EventRecorder {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
-	eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: clientv1.New(kubecli.Core().RESTClient()).Events(namespace)})
+	eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: clientv1.New(kubecli.CoreV1().RESTClient()).Events(namespace)})
 	return eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: name})
 }

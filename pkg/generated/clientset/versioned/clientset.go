@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -9,6 +9,8 @@ TODO: choose a opensource licence.
 package versioned
 
 import (
+	"fmt"
+
 	refuncv1beta3 "github.com/refunc/refunc/pkg/generated/clientset/versioned/typed/refunc/v1beta3"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -18,8 +20,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	RefuncV1beta3() refuncv1beta3.RefuncV1beta3Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Refunc() refuncv1beta3.RefuncV1beta3Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -34,12 +34,6 @@ func (c *Clientset) RefuncV1beta3() refuncv1beta3.RefuncV1beta3Interface {
 	return c.refuncV1beta3
 }
 
-// Deprecated: Refunc retrieves the default version of RefuncClient.
-// Please explicitly pick a version.
-func (c *Clientset) Refunc() refuncv1beta3.RefuncV1beta3Interface {
-	return c.refuncV1beta3
-}
-
 // Discovery retrieves the DiscoveryClient
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 	if c == nil {
@@ -49,9 +43,14 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 }
 
 // NewForConfig creates a new Clientset for the given config.
+// If config's RateLimiter is not set and QPS and Burst are acceptable,
+// NewForConfig will generate a rate-limiter in configShallowCopy.
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	configShallowCopy := *c
 	if configShallowCopy.RateLimiter == nil && configShallowCopy.QPS > 0 {
+		if configShallowCopy.Burst <= 0 {
+			return nil, fmt.Errorf("burst is required to be greater than 0 when RateLimiter is not set and QPS is set to greater than 0")
+		}
 		configShallowCopy.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(configShallowCopy.QPS, configShallowCopy.Burst)
 	}
 	var cs Clientset

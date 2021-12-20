@@ -1,11 +1,12 @@
 package funcinst
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -16,8 +17,8 @@ import (
 	"github.com/refunc/refunc/pkg/utils/rfutil"
 )
 
-func (rc *Controller) getRuntimeReplciaSet(funcinst *rfv1beta3.Funcinst) (*v1beta1.ReplicaSet, error) {
-	rss, err := rc.kclient.ExtensionsV1beta1().ReplicaSets(funcinst.Namespace).List(metav1.ListOptions{
+func (rc *Controller) getRuntimeReplciaSet(funcinst *rfv1beta3.Funcinst) (*appsv1.ReplicaSet, error) {
+	rss, err := rc.kclient.AppsV1().ReplicaSets(funcinst.Namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labels.Set(rfutil.ExecutorLabels(funcinst)).String(),
 	})
 
@@ -38,9 +39,9 @@ func (rc *Controller) getRuntimeReplciaSet(funcinst *rfv1beta3.Funcinst) (*v1bet
 	return nil, nil
 }
 
-func (rc *Controller) prepareRuntimeReplicaSet(funcinst *rfv1beta3.Funcinst, fndef *rfv1beta3.Funcdef, xenv *rfv1beta3.Xenv) (rs *v1beta1.ReplicaSet, pod *v1.Pod, err error) {
+func (rc *Controller) prepareRuntimeReplicaSet(funcinst *rfv1beta3.Funcinst, fndef *rfv1beta3.Funcdef, xenv *rfv1beta3.Xenv) (rs *appsv1.ReplicaSet, pod *corev1.Pod, err error) {
 
-	var dep *v1beta1.Deployment
+	var dep *appsv1.Deployment
 	if xenv.Spec.PoolSize > 0 {
 		// relabel a pod if xenv has a pool
 		dep, err = runtime.GetXenvPoolDeployment(rc.deploymentLister, xenv)
@@ -62,7 +63,7 @@ func (rc *Controller) prepareRuntimeReplicaSet(funcinst *rfv1beta3.Funcinst, fnd
 			klog.Errorf("rc: failed to gen rs for %q, %v, deleting relabeled pod %v",
 				funcinst.Name,
 				err,
-				rc.kclient.Core().Pods(funcinst.Namespace).Delete(pod.GetName(), new(metav1.DeleteOptions)),
+				rc.kclient.CoreV1().Pods(funcinst.Namespace).Delete(context.TODO(), pod.GetName(), *new(metav1.DeleteOptions)),
 			)
 		}
 	}()
@@ -80,7 +81,7 @@ func (rc *Controller) prepareRuntimeReplicaSet(funcinst *rfv1beta3.Funcinst, fnd
 	// creating a replicas from template
 	rs = rc.replicaSetFromTemplate(funcinst, dep)
 	err = retryOnceOnError(func() error {
-		rs, err = rc.kclient.Extensions().ReplicaSets(funcinst.Namespace).Create(rs)
+		rs, err = rc.kclient.AppsV1().ReplicaSets(funcinst.Namespace).Create(context.TODO(), rs, metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(err) {
 			err = nil
 		}
@@ -99,16 +100,16 @@ var (
 	isController       = true
 )
 
-func (rc *Controller) replicaSetFromTemplate(funcinst *rfv1beta3.Funcinst, dep *v1beta1.Deployment) *v1beta1.ReplicaSet {
+func (rc *Controller) replicaSetFromTemplate(funcinst *rfv1beta3.Funcinst, dep *appsv1.Deployment) *appsv1.ReplicaSet {
 
 	labels := rfutil.ExecutorLabels(funcinst)
-	rs := &v1beta1.ReplicaSet{
+	rs := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: funcinst.Name + "-",
 			Namespace:    funcinst.Namespace,
 			Labels:       labels,
 		},
-		Spec: v1beta1.ReplicaSetSpec{
+		Spec: appsv1.ReplicaSetSpec{
 			Replicas: &initReplicas,
 			Template: dep.Spec.Template,
 		},

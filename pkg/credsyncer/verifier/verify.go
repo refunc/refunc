@@ -12,7 +12,7 @@ import (
 
 	k8sinformers "k8s.io/client-go/informers"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/refunc/refunc/pkg/builtins"
 	"github.com/refunc/refunc/pkg/credsyncer"
 	"github.com/refunc/refunc/pkg/env"

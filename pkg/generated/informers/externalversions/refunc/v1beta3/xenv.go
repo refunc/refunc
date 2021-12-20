@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -9,6 +9,7 @@ TODO: choose a opensource licence.
 package v1beta3
 
 import (
+	"context"
 	time "time"
 
 	refuncv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
@@ -51,13 +52,13 @@ func NewFilteredXenvInformer(client versioned.Interface, namespace string, resyn
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.RefuncV1beta3().Xenvs(namespace).List(options)
+				return client.RefuncV1beta3().Xenvs(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.RefuncV1beta3().Xenvs(namespace).Watch(options)
+				return client.RefuncV1beta3().Xenvs(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&refuncv1beta3.Xenv{},

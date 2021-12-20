@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The refunc Authors
+Copyright 2021 The refunc Authors
 
 TODO: choose a opensource licence.
 */
@@ -16,8 +16,10 @@ import (
 )
 
 // FuncdefLister helps list Funcdeves.
+// All objects returned here must be treated as read-only.
 type FuncdefLister interface {
 	// List lists all Funcdeves in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Funcdef, err error)
 	// Funcdeves returns an object that can list and get Funcdeves.
 	Funcdeves(namespace string) FuncdefNamespaceLister
@@ -48,10 +50,13 @@ func (s *funcdefLister) Funcdeves(namespace string) FuncdefNamespaceLister {
 }
 
 // FuncdefNamespaceLister helps list and get Funcdeves.
+// All objects returned here must be treated as read-only.
 type FuncdefNamespaceLister interface {
 	// List lists all Funcdeves in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta3.Funcdef, err error)
 	// Get retrieves the Funcdef from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta3.Funcdef, error)
 	FuncdefNamespaceListerExpansion
 }

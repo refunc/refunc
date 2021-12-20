@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
@@ -56,7 +56,7 @@ func (rt *lambda) IsPodReady(pod *corev1.Pod) bool {
 }
 
 // GetDeploymentTemplate returns a deployment of the runner
-func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment {
+func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *appsv1.Deployment {
 	var replicas = defaultPoolSize
 	if tpl.Spec.PoolSize != 0 {
 		replicas = int32(tpl.Spec.PoolSize)
@@ -130,8 +130,8 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *v1beta1.Deployment
 		containers = append(containers, *sidecar)
 	}
 
-	dep := &v1beta1.Deployment{
-		Spec: v1beta1.DeploymentSpec{
+	dep := &appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
 			Replicas:             &replicas,
 			Selector:             &metav1.LabelSelector{}, // MatchLabels will be filled by controller
 			RevisionHistoryLimit: &historyLimits,
