@@ -44,6 +44,15 @@ func triggerCmdTemplate(factory func(config sharedcfg.SharedConfigs)) *cobra.Com
 
 	cmd := &cobra.Command{
 		Run: func(cmd *cobra.Command, args []string) {
+			namespace := os.Getenv(EnvMyPodNamespace)
+			if len(namespace) == 0 {
+				klog.Fatalf("Must set env (%s)", EnvMyPodNamespace)
+			}
+			name := os.Getenv(EnvMyPodName)
+			if len(name) == 0 {
+				klog.Fatalf("Must set env (%s)", EnvMyPodName)
+			}
+
 			ctx, cancel := context.WithCancel(context.Background())
 			natsConn, err := env.NewNatsConn(nats.Name(os.Getenv(EnvMyPodNamespace) + "/" + os.Getenv(EnvMyPodName)))
 			if err != nil {

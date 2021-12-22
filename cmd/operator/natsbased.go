@@ -24,6 +24,15 @@ func cmdNatsBased() *cobra.Command {
 	}
 
 	cmd := operatorCmdTemplate(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+		namespace := os.Getenv(EnvMyPodNamespace)
+		if len(namespace) == 0 {
+			klog.Fatalf("Must set env (%s)", EnvMyPodNamespace)
+		}
+		name := os.Getenv(EnvMyPodName)
+		if len(name) == 0 {
+			klog.Fatalf("Must set env (%s)", EnvMyPodName)
+		}
+
 		natsConn, err := env.NewNatsConn(nats.Name(os.Getenv(EnvMyPodNamespace) + "/" + os.Getenv(EnvMyPodName)))
 		if err != nil {
 			klog.Fatalf("Failed to connect to nats %s, %v", env.GlobalNatsURLString(), err)

@@ -81,7 +81,9 @@ func NewCmd() *cobra.Command {
 
 			sc := sharedcfg.New(ctx, config.Namespace)
 
-			ensureNSCreated(sc.Configs().RestConfig())
+			if config.Namespace != "" {
+				ensureNSCreated(sc.Configs().RestConfig(), config.Namespace)
+			}
 			ensureCRDsCreated(sc.Configs().RestConfig())
 
 			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
@@ -185,14 +187,12 @@ func NewCmd() *cobra.Command {
 	return cmd
 }
 
-func ensureNSCreated(cfg *rest.Config) {
+func ensureNSCreated(cfg *rest.Config, ns string) {
 	// ensure and wait tprs
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		klog.Fatalf("Failed to ensuring namespaces created, %v", err)
 	}
-
-	const ns = "refunc"
 
 	var namespace v1.Namespace
 	namespace.SetName(ns)

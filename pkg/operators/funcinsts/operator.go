@@ -135,7 +135,7 @@ func (r *Operator) handleFuncdefAdd(o interface{}) {
 		klog.Errorf("(funcinsts) failed to list triggers, %v", err)
 	}
 	for _, trigger := range trs {
-		if trigger.Spec.Type == Type && trigger.Spec.FuncName == fndef.Name {
+		if trigger.Spec.Type == Type && trigger.Spec.FuncName == fndef.Name && trigger.Namespace == fndef.Namespace {
 			return
 		}
 	}
@@ -184,7 +184,7 @@ func (r *Operator) handleFuncdefDelete(o interface{}) {
 	// tirggers may point to same func with different aliases
 	var triggers []*rfv1beta3.Trigger
 	for _, tr := range trs {
-		if tr.Spec.Type == Type && tr.Spec.FuncName == fndef.Name {
+		if tr.Spec.Type == Type && tr.Spec.FuncName == fndef.Name && tr.Namespace == fndef.Namespace {
 			triggers = append(triggers, tr)
 		}
 	}
