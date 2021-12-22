@@ -59,7 +59,7 @@ func NewCmd() *cobra.Command {
 	cmd.AddCommand(wrapcobra.Wrap(genCmd()))
 	cmd.AddCommand(wrapcobra.Wrap(startCmd()))
 
-	cmd.PersistentFlags().StringVarP(&config.Namespace, "refunc-namespace", "n", "refunc-play", "The scope of namepsace to manipulate")
+	cmd.PersistentFlags().StringVarP(&config.Namespace, "namespace", "n", "", "The scope of namepsace to manipulate")
 
 	return wrapcobra.Wrap(cmd)
 }

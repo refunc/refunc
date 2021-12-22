@@ -2,14 +2,11 @@ package operator
 
 import (
 	"context"
-	"os"
 	"sync"
 
 	"k8s.io/klog"
 
-	nats "github.com/nats-io/nats.go"
 	"github.com/refunc/refunc/pkg/credsyncer/verifier"
-	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/utils/cmdutil"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/pflagenv/wrapcobra"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/sharedcfg"
@@ -25,15 +22,6 @@ const (
 	EnvMyPodName      = "REFUNC_NAME"
 	EnvMyPodNamespace = "REFUNC_NAMESPACE"
 )
-
-type triggerOperator interface {
-	Run(stop <-chan struct{})
-}
-
-type operatorConfig struct {
-	sharedcfg.SharedConfigs
-	NatsConn *nats.Conn
-}
 
 var config struct {
 	Namespace string
@@ -60,12 +48,6 @@ func operatorCmdTemplate(factory func(cfg sharedcfg.Configs) sharedcfg.Runner) *
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, cancel := context.WithCancel(context.Background())
 			sc := sharedcfg.New(ctx, config.Namespace)
-
-			natsConn, err := env.NewNatsConn(nats.Name(os.Getenv(EnvMyPodNamespace) + "/" + os.Getenv(EnvMyPodName)))
-			if err != nil {
-				klog.Fatalf("Failed to connect to nats %s, %v", env.GlobalNatsURLString(), err)
-			}
-			defer natsConn.Close()
 
 			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
 				r := factory(cfg)
