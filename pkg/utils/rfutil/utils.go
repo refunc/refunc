@@ -2,6 +2,9 @@ package rfutil
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -65,9 +68,10 @@ func ExecutorLabels(funcinst *rfv1beta3.Funcinst) map[string]string {
 // FuncinstLabels infers a set of labels for corresponding funcinst
 func FuncinstLabels(fndef *rfv1beta3.Funcdef) map[string]string {
 	labels := map[string]string{
-		rfv1beta3.LabelResType: "funcinst",
-		rfv1beta3.LabelName:    fndef.Name,
-		rfv1beta3.LabelHash:    GetHash(fndef),
+		rfv1beta3.LabelResType:  "funcinst",
+		rfv1beta3.LabelName:     fndef.Name,
+		rfv1beta3.LabelHash:     GetHash(fndef),
+		rfv1beta3.LabelSpecHash: GetSpecHash(fndef),
 	}
 	if name, ok := fndef.Labels[rfv1beta3.LabelLambdaName]; ok {
 		labels[rfv1beta3.LabelLambdaName] = name
@@ -83,6 +87,12 @@ func GetHash(fndef *rfv1beta3.Funcdef) string {
 		return fndef.Spec.Hash[:32]
 	}
 	return fndef.Spec.Hash
+}
+
+func GetSpecHash(fndef *rfv1beta3.Funcdef) string {
+	spec := fndef.DeepCopy().Spec
+	spec.Hash = ""
+	return getMD5Hash(spec)
 }
 
 func GetFunctionVersion(fndef *rfv1beta3.Funcdef) string {
@@ -184,4 +194,11 @@ func getObject(obj interface{}) (metav1.Object, bool) {
 		return nil, false
 	}
 	return o, true
+}
+
+func getMD5Hash(object interface{}) string {
+	md5Ctx := md5.New()
+	data, _ := json.Marshal(object)
+	md5Ctx.Write(data)
+	return hex.EncodeToString(md5Ctx.Sum(nil))
 }

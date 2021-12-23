@@ -12,10 +12,11 @@ import (
 
 // well known labels
 const (
-	LabelResType = "refunc.io/res"
-	LabelName    = "refunc.io/name"
-	LabelHash    = "refunc.io/hash"
-	LabelUID     = "refunc.io/uid"
+	LabelResType  = "refunc.io/res"
+	LabelName     = "refunc.io/name"
+	LabelHash     = "refunc.io/hash"
+	LabelSpecHash = "refunc.io/specHash"
+	LabelUID      = "refunc.io/uid"
 
 	LabelLambdaVersion = "lambda.refunc.io/version"
 	LabelLambdaName    = "lambda.refunc.io/name"
