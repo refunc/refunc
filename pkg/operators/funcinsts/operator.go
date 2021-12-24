@@ -151,6 +151,14 @@ func (r *Operator) handleFuncdefAdd(o interface{}) {
 			Annotations: map[string]string{
 				rfv1beta3.AnnotationRPCVer: "v2",
 			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: rfv1beta3.APIVersion,
+					Kind:       rfv1beta3.FuncdefKind,
+					Name:       fndef.Name,
+					UID:        fndef.UID,
+				},
+			},
 		},
 		Spec: rfv1beta3.TriggerSpec{
 			Type:     Type,

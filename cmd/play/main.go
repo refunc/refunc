@@ -66,24 +66,24 @@ func NewCmd() *cobra.Command {
 
 func genCmd() *cobra.Command {
 	var tplConfig struct {
-		Bucket      string
-		S3Prefix    string
-		DisableRBAC bool
+		Bucket   string
+		S3Prefix string
 	}
 	cmd := &cobra.Command{
 		Use:   "gen",
 		Short: "generate all-in-one k8s resources for play in local",
 		Run: func(cmd *cobra.Command, args []string) {
+			if config.Namespace == "" {
+				config.Namespace = "refunc-play"
+			}
 			if err := k8sTpl.Execute(os.Stdout, struct {
 				Namespace string
 				ImageTag  string
-				RBAC      bool
 				Bucket    string
 				S3Prefix  string
 			}{
 				Namespace: config.Namespace,
 				ImageTag:  version.Version,
-				RBAC:      !tplConfig.DisableRBAC,
 				Bucket:    tplConfig.Bucket,
 				S3Prefix:  tplConfig.S3Prefix,
 			}); err != nil {
@@ -91,7 +91,6 @@ func genCmd() *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().BoolVar(&tplConfig.DisableRBAC, "disable-rbac", false, "If enable rbac")
 	cmd.Flags().StringVar(&tplConfig.Bucket, "bucket", "refunc", "Bucket for minio to store functions")
 	cmd.Flags().StringVar(&tplConfig.S3Prefix, "prefix", "functions", "Path prefix(folder) to store functions under bukect")
 	return cmd

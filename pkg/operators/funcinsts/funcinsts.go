@@ -110,6 +110,14 @@ func (r *Operator) GetFuncInstance(trigger *rfv1beta3.Trigger) (*rfv1beta3.Funci
 			// generate a unique name
 			Name:   strings.ToLower(name + "-" + nuid.New().Next()[22-5:]),
 			Labels: labels,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: rfv1beta3.APIVersion,
+					Kind:       rfv1beta3.FuncdefKind,
+					Name:       fndef.Name,
+					UID:        fndef.UID,
+				},
+			},
 		},
 		Spec: rfv1beta3.FuncinstSpec{
 			FuncdefRef: fndef.Ref(),
@@ -173,7 +181,6 @@ func (r *Operator) indexOf(fni *rfv1beta3.Funcinst) {
 	} else {
 		cache.Delete(fni)
 	}
-	return
 }
 
 func (r *Operator) getInstForTrigger(key string) (fni *rfv1beta3.Funcinst, has bool) {
