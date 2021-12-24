@@ -69,11 +69,10 @@ data:
           proxy_pass http://s3.{{.Namespace}};
         }
         location ^~ /2015-03-31/ {
-          proxy_pass http://127.0.0.1:4574;
+          proxy_pass http://127.0.0.1:9000;
         }
     }
 
-{{- if .RBAC }}
 ---
 
 apiVersion: v1
@@ -96,8 +95,6 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
   apiGroup: rbac.authorization.k8s.io
-
-{{- end }}
 
 ---
 
@@ -259,21 +256,20 @@ metadata:
     refunc.io/res: play-in-one
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      refunc.io/res: play-in-one
   template:
     metadata:
       labels:
         refunc.io/res: play-in-one
     spec:
-    {{- if .RBAC }}
       serviceAccount: refunc
-    {{- end }}
       containers:
       - image: "refunc/refunc:{{ .ImageTag }}"
         imagePullPolicy: IfNotPresent
         name: controller
         env:
-        - name: REFUNC_ENV
-          value: cluster
         - name: REFUNC_NAMESPACE
           valueFrom:
             fieldRef:
@@ -308,12 +304,14 @@ spec:
             secretKeyRef:
               name: refunc
               key: access-token
-        args:
+        command:
         - refunc
         - play
         - start
         - --v
         - "3"
+        - -n
+        - {{ .Namespace }}
         ports:
         - containerPort: 7788
           protocol: TCP
@@ -330,15 +328,17 @@ metadata:
     refunc.io/name: s3
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      refunc.io/res: storage
+      refunc.io/name: s3
   template:
     metadata:
       labels:
         refunc.io/res: storage
         refunc.io/name: s3
     spec:
-    {{- if .RBAC }}
       serviceAccount: refunc
-    {{- end }}
       initContainers:
       - name: make-bucket
         image: busybox
@@ -350,7 +350,7 @@ spec:
         - name: export
           mountPath: /export
       containers:
-      - image: minio/minio
+      - image: minio/minio:RELEASE.2018-12-27T18-33-08Z
         imagePullPolicy: IfNotPresent
         name: minio
         env:
@@ -391,6 +391,10 @@ metadata:
     refunc.io/name: nats
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      refunc.io/res: message
+      refunc.io/name: nats
   template:
     metadata:
       labels:
@@ -399,7 +403,7 @@ spec:
     spec:
       containers:
       - name: nats
-        image: nats:1.1.0
+        image: nats:2.6.2
         imagePullPolicy: IfNotPresent
         args:
         - "--config"
@@ -440,22 +444,26 @@ metadata:
     refunc.io/name: aws-api
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      refunc.io/res: gateway
+      refunc.io/name: aws-api
   template:
     metadata:
       labels:
         refunc.io/res: gateway
         refunc.io/name: aws-api
     spec:
-    {{- if .RBAC }}
       serviceAccount: refunc
-    {{- end }}
       containers:
       - name: api
         image: refunc/aws-api-gw
         imagePullPolicy: IfNotPresent
+        command:
+          - aws-api-gw
+          - -n
+          - {{ .Namespace }}
         env:
-        - name: REFUNC_ENV
-          value: cluster
         - name: REFUNC_NAMESPACE
           valueFrom:
             fieldRef:
