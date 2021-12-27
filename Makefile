@@ -59,13 +59,13 @@ endif
 bin/$(GOOS)/refunc: $(shell find pkg -type f -name '*.go') $(shell find cmd -type f -name '*.go')
 refunc-image: TARGET_IMAGE=$(REFUNC_IMAGE)
 
-bin/$(GOOS)/loader: cmd/loader/*.go pkg/runtime/lambda/loader/*.go
+bin/$(GOOS)/loader: $(shell find pkg -type f -name '*.go') $(shell find cmd/loader -type f -name '*.go')
 loader-image: TARGET_IMAGE=$(LOADER_IMAGE)
 
-bin/$(GOOS)/sidecar: cmd/sidecar/*.go $(shell find pkg/sidecar -type f -name '*.go') $(shell find pkg/transport -type f -name '*.go')
+bin/$(GOOS)/sidecar: $(shell find pkg -type f -name '*.go') $(shell find cmd/sidecar -type f -name '*.go')
 sidecar-image: TARGET_IMAGE=$(SIDECAR_IMAGE)
 
-bin/$(GOOS)/credsyncer: pkg/apis/refunc/v1beta3/*.go pkg/credsyncer/*.go cmd/credsyncer/*.go
+bin/$(GOOS)/credsyncer: $(shell find pkg -type f -name '*.go') $(shell find cmd/credsyncer -type f -name '*.go')
 credsyncer-image: TARGET_IMAGE=$(CREDSYNCER_IMAGE)
 
 push: images
