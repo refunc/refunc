@@ -27,6 +27,8 @@ var (
 	errInvalidRequest = errors.New("Invalid request topic")
 )
 
+const codeLaunchBias = 10 * time.Second
+
 func (nh *natsHandler) Start(ctx context.Context, operator operators.Interface) {
 	nh.operator = operator
 	nh.ctx, nh.cancel = context.WithCancel(ctx)
@@ -164,7 +166,7 @@ func (nh *natsHandler) forwardRequest(msg *nats.Msg, fndef *rfv1beta3.Funcdef, t
 	// parse job max timeout for a running job
 	var timeout = messages.DefaultJobTimeout
 	if fndef.Spec.Runtime != nil && fndef.Spec.Runtime.Timeout > 0 {
-		timeout = time.Second * time.Duration(fndef.Spec.Runtime.Timeout)
+		timeout = time.Second*time.Duration(fndef.Spec.Runtime.Timeout) + codeLaunchBias
 	}
 
 	ctx, cancel := context.WithTimeout(nh.ctx, timeout)
@@ -181,9 +183,17 @@ func (nh *natsHandler) forwardRequest(msg *nats.Msg, fndef *rfv1beta3.Funcdef, t
 		nh.replyError(msg.Subject, msg.Reply, err)
 		return
 	}
+
 	if req.Deadline.IsZero() {
 		// enforce deadline
 		client.SetReqeustDeadline(ctx, &req)
+	}
+	if !(fninst.Status.Active > 0) {
+		req.Deadline = time.Time{}
+		client.SetReqeustDeadline(ctx, &req) // reset cry req deadline with codeLaunchBias
+		if data, err = json.Marshal(req); err != nil {
+			nh.replyError(msg.Subject, msg.Reply, err)
+		}
 	}
 
 	// forwarding request
