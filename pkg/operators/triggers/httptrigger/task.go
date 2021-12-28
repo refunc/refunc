@@ -12,8 +12,6 @@ import (
 	"github.com/refunc/refunc/pkg/utils"
 )
 
-const codeLaunchBias = 10 * time.Second
-
 // ensureTask gets or creates a client.TaskResolver
 func (t *httpHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Trigger, request *messages.InvokeRequest) (client.TaskResolver, error) {
 	id := request.RequestID
@@ -32,7 +30,7 @@ func (t *httpHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Tr
 		// parse job max timeout for a running job
 		var timeout = messages.DefaultJobTimeout
 		if fndef.Spec.Runtime != nil && fndef.Spec.Runtime.Timeout > 0 {
-			timeout = time.Second*time.Duration(fndef.Spec.Runtime.Timeout) + codeLaunchBias
+			timeout = time.Second * time.Duration(fndef.Spec.Runtime.Timeout)
 		}
 
 		// rewrite logging option

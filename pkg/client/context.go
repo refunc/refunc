@@ -125,9 +125,13 @@ func GetTimeoutHint(ctx context.Context) time.Duration {
 		if timeout < 0 {
 			timeout = 0
 		}
-	}
-	if hint, ok := ctx.Value(timeoutKey).(time.Duration); ok && hint > 0 {
-		if hint < timeout {
+		if hint, ok := ctx.Value(timeoutKey).(time.Duration); ok && hint > 0 {
+			if hint < timeout {
+				return hint
+			}
+		}
+	} else {
+		if hint, ok := ctx.Value(timeoutKey).(time.Duration); ok && hint > 0 {
 			return hint
 		}
 	}

@@ -228,7 +228,7 @@ func (eng *engine) SetResult(rid string, body []byte, err error, conentType stri
 		reply, expired := doneFunc()
 		if expired {
 			klog.Warningf("(natscar) request expired %q", rid)
-			return invalidRequestIDErr(rid)
+			return nil
 		}
 		eng.publish(reply, messages.MustFromObject(&messages.Action{
 			Type: messages.Response,
@@ -241,7 +241,8 @@ func (eng *engine) SetResult(rid string, body []byte, err error, conentType stri
 		return nil
 	}
 	klog.Warningf("(natscar) cannot find request %q", rid)
-	return invalidRequestIDErr(rid)
+	//prevent lambda runtime client panic
+	return nil
 }
 
 func (eng *engine) ReportInitError(err error) {
