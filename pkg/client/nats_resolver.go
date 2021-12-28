@@ -37,13 +37,19 @@ func NewNatsResolver(ctx context.Context, nc *nats.Conn, endpoint string, reques
 
 	logger := GetLogger(ctx)
 
+	// prevent tasker done with deadline, tasker only done with SetResult
+	trCtx, trCancel := context.WithCancel(context.Background())
+
 	tr := &natsResolver{
 		Logger: logger,
 		hash:   reqID,
 		name:   name,
 		t0:     time.Now(),
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:    trCtx,
+		cancel: func() {
+			trCancel()
+			cancel()
+		},
 		msgSrc: observer.NewProperty(nil),
 		logSrc: observer.NewProperty(nil),
 	}
