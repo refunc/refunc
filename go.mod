@@ -43,4 +43,7 @@ require (
 	k8s.io/klog v0.3.0
 )
 
-replace github.com/ulikunitz/xz v0.5.6 => github.com/ulikunitz/xz v0.5.10
+replace (
+	github.com/ulikunitz/xz v0.5.6 => github.com/ulikunitz/xz v0.5.10
+	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
+)
