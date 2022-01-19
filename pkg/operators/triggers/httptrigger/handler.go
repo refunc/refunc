@@ -110,7 +110,7 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 		argsMap["$method"] = strings.ToLower(req.Method)
 		data = messages.MustFromObject(argsMap)
 
-		rid := utils.GenID(data)
+		rid := GetRequestID(req)
 		id := path.Join(t.fndKey, rid)
 
 		// create request

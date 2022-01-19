@@ -12,6 +12,7 @@ require (
 	github.com/garyburd/redigo v1.6.0
 	github.com/go-ini/ini v1.42.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/google/uuid v1.1.2
 	github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.1
