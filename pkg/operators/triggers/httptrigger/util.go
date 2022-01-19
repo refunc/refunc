@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 func writeHTTPError(rw http.ResponseWriter, code int, msg string) {
@@ -72,4 +74,12 @@ func SortArgs(args []byte) (json.RawMessage, error) {
 		return nil, err
 	}
 	return json.RawMessage(bts), nil
+}
+
+func GetRequestID(req *http.Request) string {
+	id := req.Header.Get("X-Request-ID")
+	if id == "" {
+		id = uuid.New().String()
+	}
+	return id
 }
