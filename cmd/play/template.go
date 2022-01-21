@@ -63,6 +63,7 @@ data:
 
         ignore_invalid_headers off;
         proxy_buffering off;
+        client_max_body {{ .UploadSizeLimit }}M;
 
         location ^~ / {
           proxy_set_header Host $http_host;

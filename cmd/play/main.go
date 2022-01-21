@@ -66,8 +66,9 @@ func NewCmd() *cobra.Command {
 
 func genCmd() *cobra.Command {
 	var tplConfig struct {
-		Bucket   string
-		S3Prefix string
+		Bucket   		string
+		S3Prefix 		string
+		UploadSizeLimit string
 	}
 	cmd := &cobra.Command{
 		Use:   "gen",
@@ -77,15 +78,17 @@ func genCmd() *cobra.Command {
 				config.Namespace = "refunc-play"
 			}
 			if err := k8sTpl.Execute(os.Stdout, struct {
-				Namespace string
-				ImageTag  string
-				Bucket    string
-				S3Prefix  string
+				Namespace 		string
+				ImageTag  		string
+				Bucket    		string
+				S3Prefix  		string
+				UploadSizeLimit string
 			}{
 				Namespace: config.Namespace,
-				ImageTag:  version.Version,
-				Bucket:    tplConfig.Bucket,
-				S3Prefix:  tplConfig.S3Prefix,
+				ImageTag:  		 version.Version,
+				Bucket:    		 tplConfig.Bucket,
+				S3Prefix:  		 tplConfig.S3Prefix,
+				UploadSizeLimit: tplConfig.UploadSizeLimit,
 			}); err != nil {
 				klog.Fatal(err)
 			}
@@ -93,6 +96,7 @@ func genCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&tplConfig.Bucket, "bucket", "refunc", "Bucket for minio to store functions")
 	cmd.Flags().StringVar(&tplConfig.S3Prefix, "prefix", "functions", "Path prefix(folder) to store functions under bukect")
+	cmd.Flags().StringVar(&tplConfig.UploadSizeLimit, "uploadSizeLimit", "functions", "Max upload size (in megabyte) for lambda archive")
 	return cmd
 }
 
