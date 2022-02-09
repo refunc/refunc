@@ -43,13 +43,10 @@ func ParseAction(raw []byte, p TaskParser) (next bool) {
 
 	case messages.Response:
 		var rsp messages.InvokeResponse
+		//lambda function return value always is json-formated.
+		//https://docs.aws.amazon.com/lambda/latest/dg/python-handler.html#python-handler-return
+		//https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html
 		err := json.Unmarshal(action.Payload, &rsp)
-		// TODO(bin), update clients for other langs
-		// fallback legacy proto
-		if err != nil || (rsp.Payload == nil && rsp.Error == nil && len(action.Payload) > 2 /*2 means empty json: {}*/) {
-			p.SetResult(raw, nil)
-			return
-		}
 		if err != nil {
 			p.SetResult(nil, fmt.Errorf("task: json error, %v", unquote(action.Payload)))
 			return
@@ -65,7 +62,7 @@ func ParseAction(raw []byte, p TaskParser) (next bool) {
 		p.UpdateLog(action.Payload)
 
 	default:
-		p.SetResult(nil, fmt.Errorf("Unsupported action type: %q", action.Type))
+		p.SetResult(nil, fmt.Errorf("unsupported action type: %q", action.Type))
 		return
 	}
 
@@ -83,5 +80,4 @@ func SetReqeustDeadline(ctx context.Context, request *messages.InvokeRequest) {
 		deadline = time.Now().Add(timeout)
 	}
 	request.Deadline = deadline
-	return
 }
