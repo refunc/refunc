@@ -230,6 +230,9 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool
 			rw.WriteHeader(http.StatusInternalServerError)
 			return rw.Write(append([]byte(err.Error()), messages.TokenCRLF...))
 		}
+		rw.Header().Set("Content-Type", jsonCT)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return rw.Write(bts)
 	}
 
 	if isWeb {
