@@ -133,7 +133,11 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 		}
 
 		ctx := req.Context()
-		t.taskPoller(ctx, rw, jsonCT, taskr, blockTickerCh, false)()
+		isWeb := false
+		if trigger.Spec.HTTPTrigger != nil {
+			isWeb = trigger.Spec.HTTPTrigger.Web
+		}
+		t.taskPoller(ctx, rw, isWeb, taskr, blockTickerCh, false)()
 	}
 }
 
@@ -166,7 +170,7 @@ func (t *httpHandler) flushWriter(rw http.ResponseWriter, idH string) func([]byt
 func (t *httpHandler) taskPoller(
 	ctx context.Context,
 	rw http.ResponseWriter,
-	ct string,
+	web bool,
 	taskr client.TaskResolver,
 	tickerC <-chan time.Time,
 	fwdlog bool,
@@ -210,7 +214,7 @@ func (t *httpHandler) taskPoller(
 			if err != nil {
 				bts = messages.GetErrActionBytes(err)
 			}
-			if _, err := t.writeResult(rw, bts, !(err == nil), ct); err != nil {
+			if _, err := t.writeResult(rw, bts, !(err == nil), web); err != nil {
 				klog.Errorf("(h) %s failed to write result, %v", taskr.ID(), err)
 			}
 		}
@@ -218,7 +222,7 @@ func (t *httpHandler) taskPoller(
 	}
 }
 
-func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool, ct string) (n int, err error) {
+func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool, isWeb bool) (n int, err error) {
 	if isErr {
 		var msg messages.Action
 		err = json.Unmarshal(bts, &msg)
@@ -228,6 +232,16 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool
 		}
 	}
 
-	rw.Header().Set("Content-Type", ct)
+	if isWeb {
+		var rsp webMessage
+		err = json.Unmarshal(bts, &rsp)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			return rw.Write(append([]byte(err.Error()), messages.TokenCRLF...))
+		}
+		return t.writeWebResult(rw, rsp)
+	}
+
+	rw.Header().Set("Content-Type", jsonCT)
 	return rw.Write(bts)
 }

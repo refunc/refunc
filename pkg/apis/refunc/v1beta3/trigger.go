@@ -78,6 +78,7 @@ type CronTrigger struct {
 // HTTPTrigger is a funcinst that will react at HTTP requests
 type HTTPTrigger struct {
 	ContentType string `json:"contentType"`
+	Web         bool   `json:"web"`
 }
 
 // AsOwner returns *metav1.OwnerReference
