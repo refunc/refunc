@@ -25,7 +25,9 @@ var (
 	blockTickerCh = make(chan time.Time)
 )
 
-const jsonCT = "application/json; charset=utf-8"
+const (
+	jsonCT = "application/json; charset=utf-8"
+)
 
 type httpHandler struct {
 	fndKey string
@@ -131,8 +133,7 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 		}
 
 		ctx := req.Context()
-		t.taskPoller(ctx, rw, "" /*contentType*/, taskr, blockTickerCh, false, false)()
-		return
+		t.taskPoller(ctx, rw, jsonCT, taskr, blockTickerCh, false)()
 	}
 }
 
@@ -148,7 +149,6 @@ func (t *httpHandler) handleMeta(rw http.ResponseWriter, req *http.Request) {
 	// serve embeded meta
 	rw.Header().Set("Content-Type", jsonCT)
 	rw.Write(append([]byte{'{', '}'}, messages.TokenCRLF...)) // nolint:errcheck
-	return
 }
 
 func (t *httpHandler) flushWriter(rw http.ResponseWriter, idH string) func([]byte) bool {
@@ -169,7 +169,7 @@ func (t *httpHandler) taskPoller(
 	ct string,
 	taskr client.TaskResolver,
 	tickerC <-chan time.Time,
-	fwdlog, isstream bool,
+	fwdlog bool,
 ) func() bool {
 	var logsteam observer.Stream
 	if fwdlog {
@@ -210,7 +210,7 @@ func (t *httpHandler) taskPoller(
 			if err != nil {
 				bts = messages.GetErrActionBytes(err)
 			}
-			if _, err := t.writeResult(rw, bts, isstream, ct); err != nil {
+			if _, err := t.writeResult(rw, bts, !(err == nil), ct); err != nil {
 				klog.Errorf("(h) %s failed to write result, %v", taskr.ID(), err)
 			}
 		}
@@ -218,24 +218,16 @@ func (t *httpHandler) taskPoller(
 	}
 }
 
-func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isstream bool, ct string) (n int, err error) {
-	if !isstream {
+func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool, ct string) (n int, err error) {
+	if isErr {
 		var msg messages.Action
 		err = json.Unmarshal(bts, &msg)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			return rw.Write(append([]byte(err.Error()), messages.TokenCRLF...))
 		}
-		if ct == "" && func() bool {
-			var js json.RawMessage
-			return json.Unmarshal(bts, &js) == nil
-		}() {
-			ct = jsonCT
-		}
 	}
-	if ct == "" {
-		ct = http.DetectContentType(bts)
-	}
+
 	rw.Header().Set("Content-Type", ct)
 	return rw.Write(bts)
 }
