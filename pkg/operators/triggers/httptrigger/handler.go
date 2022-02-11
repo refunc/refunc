@@ -242,6 +242,12 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool
 			rw.WriteHeader(http.StatusInternalServerError)
 			return rw.Write(append([]byte(err.Error()), messages.TokenCRLF...))
 		}
+		// bts not is web message or raw is true fallback to json message
+		// https://github.com/golang/go/blob/master/src/net/http/server.go#L1098
+		if rsp.Raw || rsp.StatusCode < 100 || rsp.StatusCode > 999 {
+			rw.Header().Set("Content-Type", jsonCT)
+			return rw.Write(bts)
+		}
 		return t.writeWebResult(rw, rsp)
 	}
 
