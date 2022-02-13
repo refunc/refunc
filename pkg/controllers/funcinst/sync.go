@@ -72,6 +72,7 @@ func (rc *Controller) sync(key string) error {
 		}
 		return err
 	}
+
 	// check version
 	oldHash, oldSpecHash := fni.Labels[rfv1beta3.LabelHash], fni.Labels[rfv1beta3.LabelSpecHash]
 	newHash, newSpecHash := rfutil.GetHash(fndef), rfutil.GetSpecHash(fndef)
@@ -206,7 +207,7 @@ func (rc *Controller) sync(key string) error {
 	}
 
 	// check replicas
-	if fndef.Spec.MaxReplicas > 1 {
+	if fndef.Spec.MaxReplicas > 1 && fndef.Spec.MaxReplicas > fndef.Spec.MinReplicas {
 		hpa, err := rc.hpaLister.HorizontalPodAutoscalers(fni.Namespace).Get(fni.Name)
 		if hpa == nil || k8sutil.IsResourceNotFoundError(err) {
 			klog.Infof("(tc) creating horizontalPodAutoscaler for %q", fni.Name)

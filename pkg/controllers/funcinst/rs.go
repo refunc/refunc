@@ -42,7 +42,7 @@ func (rc *Controller) getRuntimeReplciaSet(funcinst *rfv1beta3.Funcinst) (*appsv
 func (rc *Controller) prepareRuntimeReplicaSet(funcinst *rfv1beta3.Funcinst, fndef *rfv1beta3.Funcdef, xenv *rfv1beta3.Xenv) (rs *appsv1.ReplicaSet, pod *corev1.Pod, err error) {
 
 	var dep *appsv1.Deployment
-	if xenv.Spec.PoolSize > 0 {
+	if xenv.Spec.PoolSize > 0 && !(fndef.Spec.MinReplicas > 0) {
 		// relabel a pod if xenv has a pool
 		dep, err = runtime.GetXenvPoolDeployment(rc.deploymentLister, xenv)
 		if dep != nil {
@@ -80,6 +80,9 @@ func (rc *Controller) prepareRuntimeReplicaSet(funcinst *rfv1beta3.Funcinst, fnd
 
 	// creating a replicas from template
 	rs = rc.replicaSetFromTemplate(funcinst, dep)
+	if fndef.Spec.MinReplicas > 0 {
+		rs.Spec.Replicas = &fndef.Spec.MinReplicas
+	}
 	err = retryOnceOnError(func() error {
 		rs, err = rc.kclient.AppsV1().ReplicaSets(funcinst.Namespace).Create(context.TODO(), rs, metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(err) {

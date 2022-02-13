@@ -8,6 +8,7 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/rest"
@@ -95,9 +96,24 @@ func (r *Operator) Run(stopC <-chan struct{}) {
 
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 
+	updateHandler := func(fn func(interface{})) func(o, c interface{}) {
+		return func(oldObj, curObj interface{}) {
+			old, _ := meta.Accessor(oldObj)
+			cur, _ := meta.Accessor(curObj)
+
+			// Periodic resync may resend the deployment without changes in-between.
+			// Also breaks loops created by updating the resource ourselves.
+			if old.GetResourceVersion() == cur.GetResourceVersion() {
+				return
+			}
+			fn(curObj)
+		}
+	}
+
 	// add events emitter
 	r.RefuncInformers.Refunc().V1beta3().Funcdeves().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    r.handleFuncdefAdd,
+		UpdateFunc: updateHandler(r.handleFuncdefUpdate),
 		DeleteFunc: r.handleFuncdefDelete,
 	})
 	r.RefuncInformers.Refunc().V1beta3().Triggers().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -136,6 +152,7 @@ func (r *Operator) handleFuncdefAdd(o interface{}) {
 	}
 	for _, trigger := range trs {
 		if trigger.Spec.Type == Type && trigger.Spec.FuncName == fndef.Name && trigger.Namespace == fndef.Namespace {
+			r.setProvisionedInstance(trigger)
 			return
 		}
 	}
@@ -175,6 +192,29 @@ func (r *Operator) handleFuncdefAdd(o interface{}) {
 	if err != nil {
 		klog.Errorf("(funcinsts) failed to generate trigger for %s, %v", k8sKey(fndef), err)
 	}
+
+}
+
+func (r *Operator) handleFuncdefUpdate(o interface{}) {
+	fndef := o.(*rfv1beta3.Funcdef)
+	var trigger *rfv1beta3.Trigger
+
+	trs, err := r.getTriggerLister()(labels.Everything())
+	if err != nil {
+		klog.Errorf("(funcinsts) failed to list triggers, %v", err)
+	}
+
+	for _, tr := range trs {
+		if tr.Spec.Type == Type && tr.Spec.FuncName == fndef.Name && tr.Namespace == fndef.Namespace {
+			trigger = tr
+		}
+	}
+
+	if trigger == nil {
+		klog.Errorf("(funcinsts) failed to get trigger, %s/%s", fndef.Namespace, fndef.Name)
+	}
+
+	r.setProvisionedInstance(trigger)
 }
 
 func (r *Operator) handleFuncdefDelete(o interface{}) {

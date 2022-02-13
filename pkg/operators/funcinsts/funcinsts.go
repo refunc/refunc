@@ -58,11 +58,34 @@ func (r *Operator) handleFuncinstUpdate(oldObj, curObj interface{}) {
 	}
 
 	klog.V(3).Infof(
-		"(fnio) %s(%v) backends %d - %d",
+		"(fnio) %s(%v) backends %d - %d inActive %v",
 		old.Name, cur.ResourceVersion,
-		old.Status.Active, cur.Status.Active,
+		old.Status.Active, cur.Status.Active, !cur.Status.IsInactiveCondition(),
 	)
 	r.indexOf(cur)
+
+	trigger, err := r.TriggerLister.Triggers(cur.Spec.TriggerRef.Namespace).Get(cur.Spec.TriggerRef.Name)
+	if err != nil {
+		klog.Errorf("(fnio) resolve ref trigger error %v", err)
+		return
+	}
+	r.setProvisionedInstance(trigger)
+}
+
+func (r *Operator) setProvisionedInstance(trigger *rfv1beta3.Trigger) (*rfv1beta3.Funcinst, error) {
+	fndef, err := r.ResolveFuncdef(trigger)
+	if err != nil {
+		klog.Errorf("(fnio) set provisioned instance can't resolve funcdef %v", err)
+		return nil, err
+	}
+	if fndef.Spec.MinReplicas > 0 {
+		fni, err := r.GetFuncInstance(trigger)
+		if err != nil {
+			klog.Errorf("(fnio) set provisioned instance error %v", err)
+		}
+		return fni, err
+	}
+	return nil, nil
 }
 
 // GetFuncInstance returns or creates a refunc instance from trigger

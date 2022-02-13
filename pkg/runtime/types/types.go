@@ -20,6 +20,8 @@ type Function struct {
 		Hash string `json:"hash"`
 		// The entry name to execute when a function is activated
 		Entry string `json:"entry,omitempty"`
+		// the minimum number of cocurrent
+		MinReplicas int32 `json:"minReplicas"`
 		// the maximum number of cocurrent
 		MaxReplicas int32 `json:"maxReplicas"`
 		// Runtime options for agent and runtime builder
