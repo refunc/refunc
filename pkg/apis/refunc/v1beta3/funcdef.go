@@ -53,6 +53,9 @@ type FuncdefSpec struct {
 	Hash string `json:"hash"`
 	// The entry name to execute when a function is activated
 	Entry string `json:"entry,omitempty"`
+	// the min number of provisioned executors
+	// optional, 0 means do not provisioned
+	MinReplicas int32 `json:"minReplicas,omitempty"`
 	// the maximum number of parallel executors
 	// optional, 0 means do not scale
 	MaxReplicas int32 `json:"maxReplicas,omitempty"`

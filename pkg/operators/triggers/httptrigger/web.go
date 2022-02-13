@@ -6,10 +6,10 @@ import (
 )
 
 type webMessage struct {
+	Raw        bool              `json:"raw"` // mark message is raw not write as web response
 	Header     map[string]string `json:"header"`
 	StatusCode int               `json:"code"`
-	// base64 encoded body data
-	Body string `json:"body"`
+	Body       string            `json:"body"` // base64 encoded body data
 }
 
 func (t *httpHandler) writeWebResult(rw http.ResponseWriter, rsp webMessage) (n int, err error) {

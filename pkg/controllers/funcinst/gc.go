@@ -79,12 +79,15 @@ func (rc *Controller) collectGarbadge() {
 						// collected next turn
 						return false
 					}
+					if fndef.Spec.MinReplicas > 0 && cnt <= fndef.Spec.MinReplicas {
+						return true
+					}
 					if time.Since(funcinst.Status.LastActivity()) < time.Duration(math.Max(float64(rc.IdleDuraion), float64(timeoutDur))) {
-						if cnt+1 >= fndef.Spec.MaxReplicas {
+						if cnt+int32(funcinst.Status.Active) >= fndef.Spec.MaxReplicas {
 							// max replicas reached, the following funinst with same funcdef will be marked as inactive
 							fniCounter[fnkey] = -1
 						} else {
-							fniCounter[fnkey] = cnt + 1
+							fniCounter[fnkey] = cnt + int32(funcinst.Status.Active)
 						}
 						return true
 					}
