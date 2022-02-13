@@ -58,9 +58,9 @@ func (r *Operator) handleFuncinstUpdate(oldObj, curObj interface{}) {
 	}
 
 	klog.V(3).Infof(
-		"(fnio) %s(%v) backends %d - %d inActive %v",
+		"(fnio) %s(%v) backends %d - %d, inactive %v",
 		old.Name, cur.ResourceVersion,
-		old.Status.Active, cur.Status.Active, !cur.Status.IsInactiveCondition(),
+		old.Status.Active, cur.Status.Active, cur.Status.IsInactiveCondition(),
 	)
 	r.indexOf(cur)
 
