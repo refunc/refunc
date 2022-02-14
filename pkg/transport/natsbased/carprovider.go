@@ -30,13 +30,13 @@ var defaultCarContainer = corev1.Container{
 	Command:         []string{"sidecar", "--v", "3"},
 	Resources: corev1.ResourceRequirements{
 		// set sidecar limit same to func pod body
-		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-			corev1.ResourceMemory: resource.MustParse("1Gi"),
-		},
+		// Limits: corev1.ResourceList{
+		// 	corev1.ResourceCPU:    resource.MustParse("1000m"),
+		// 	corev1.ResourceMemory: resource.MustParse("1Gi"),
+		// },
 		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("100m"),
-			corev1.ResourceMemory: resource.MustParse("128Mi"),
+			corev1.ResourceCPU:    resource.MustParse("10m"),
+			corev1.ResourceMemory: resource.MustParse("32Mi"),
 		},
 	},
 }
