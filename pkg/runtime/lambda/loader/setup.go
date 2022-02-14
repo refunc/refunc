@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -218,4 +219,26 @@ func withTmpFloder(fn func(dir string)) error {
 
 	fn(folder)
 	return nil
+}
+
+func withConcurrency(fn *types.Function) int {
+	if fn.Annotations == nil {
+		return 1
+	}
+	if s, ok := fn.Annotations[AnnotationLambdaConcurrency]; ok {
+		v, err := strconv.Atoi(s)
+		if err != nil {
+			klog.Errorf("lambda concurrency setting error %v", err)
+			return 1
+		}
+		if v < 1 {
+			return 1
+		}
+		if v > MaxLambdaConcurrency {
+			klog.Errorf("lambda concurrency setting error, %d > max %d, will apply with max.", v, MaxLambdaConcurrency)
+			return MaxLambdaConcurrency
+		}
+		return v
+	}
+	return 1
 }

@@ -64,6 +64,11 @@ func (r *Operator) handleFuncinstUpdate(oldObj, curObj interface{}) {
 	)
 	r.indexOf(cur)
 
+	if len(cur.Status.Conditions) < 1 {
+		// instance just creating, no conditions change, prevent create loop.
+		return
+	}
+	// trigger reset provisioned instance, when old instance is marked inactive.
 	trigger, err := r.TriggerLister.Triggers(cur.Spec.TriggerRef.Namespace).Get(cur.Spec.TriggerRef.Name)
 	if err != nil {
 		klog.Errorf("(fnio) resolve ref trigger error %v", err)
@@ -125,14 +130,16 @@ func (r *Operator) GetFuncInstance(trigger *rfv1beta3.Trigger) (*rfv1beta3.Funci
 
 	klog.V(3).Infof("(fnio) creating new inst for %s", key)
 	labels := rfutil.FuncinstLabels(fndef)
+	annotations := rfutil.FuncinstAnnotations(fndef)
 	labels[rfv1beta3.LabelTrigger] = name
 	labels[rfv1beta3.LabelTriggerType] = Type
 	fni := &rfv1beta3.Funcinst{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
 			// generate a unique name
-			Name:   strings.ToLower(name + "-" + nuid.New().Next()[22-5:]),
-			Labels: labels,
+			Name:        strings.ToLower(name + "-" + nuid.New().Next()[22-5:]),
+			Labels:      labels,
+			Annotations: annotations,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: rfv1beta3.APIVersion,
