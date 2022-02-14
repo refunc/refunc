@@ -21,6 +21,8 @@ const (
 	LabelLambdaVersion = "lambda.refunc.io/version"
 	LabelLambdaName    = "lambda.refunc.io/name"
 
+	AnnotationLambdaConcurrency = "lambda.refunc.io/concurrency"
+
 	LabelRunner        = "refunc.io/runner"
 	LabelRunnerIsReady = "refunc.io/runner-ready"
 

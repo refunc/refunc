@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -72,9 +73,14 @@ func (ld *simpleLoader) Start(ctx context.Context, addr string) error {
 }
 
 func (ld *simpleLoader) exec(fn *types.Function) error {
-	cmd, err := ld.prepare(fn)
-	if err != nil {
-		return err
+	concurrency := withConcurrency(fn)
+	cmds := []*exec.Cmd{}
+	for i := 0; i < concurrency; i++ {
+		cmd, err := ld.prepare(fn)
+		if err != nil {
+			return err
+		}
+		cmds = append(cmds, cmd)
 	}
 
 	if apiAddr := fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"]; apiAddr != "" {
@@ -99,8 +105,19 @@ func (ld *simpleLoader) exec(fn *types.Function) error {
 		}
 	}
 
-	klog.Infof("(loader) exec %s", strings.Join(cmd.Args, " "))
-	return cmd.Run()
+	wg := sync.WaitGroup{}
+	for i, cmd := range cmds {
+		wg.Add(1)
+		go func(wid int, c *exec.Cmd) {
+			klog.Infof("(loader) worker #%d exec %s", wid, strings.Join(c.Args, " "))
+			// TODO capture cmd errors
+			c.Run()
+			wg.Done()
+		}(i, cmd)
+	}
+	wg.Wait()
+
+	return nil
 }
 
 func (ld *simpleLoader) wait(addr string) (*types.Function, error) {

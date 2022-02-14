@@ -82,6 +82,15 @@ func FuncinstLabels(fndef *rfv1beta3.Funcdef) map[string]string {
 	return labels
 }
 
+// FuncinstAnnotations infers a set of annotations for corresponding funcinst
+func FuncinstAnnotations(fndef *rfv1beta3.Funcdef) map[string]string {
+	annotations := map[string]string{}
+	if concurrency, ok := fndef.Annotations[rfv1beta3.AnnotationLambdaConcurrency]; ok {
+		annotations[rfv1beta3.AnnotationLambdaConcurrency] = concurrency
+	}
+	return annotations
+}
+
 func GetHash(fndef *rfv1beta3.Funcdef) string {
 	if len(fndef.Spec.Hash) >= 63 {
 		return fndef.Spec.Hash[:32]
@@ -90,9 +99,14 @@ func GetHash(fndef *rfv1beta3.Funcdef) string {
 }
 
 func GetSpecHash(fndef *rfv1beta3.Funcdef) string {
-	spec := fndef.DeepCopy().Spec
+	fn := fndef.DeepCopy()
+	annotations := fn.Annotations
+	spec := fn.Spec
 	spec.Hash = ""
-	return getMD5Hash(spec)
+	return getMD5Hash(map[string]interface{}{
+		"spec":        spec,
+		"annotations": annotations,
+	})
 }
 
 func GetFunctionVersion(fndef *rfv1beta3.Funcdef) string {
