@@ -46,11 +46,11 @@ func GetPayload(req *http.Request) (args []byte, err error) {
 		}
 	} else if req.Method == http.MethodGet {
 		params := req.URL.Query()
-		if kwargs, has := params["_kwargs"]; has {
-			// only pick the first
-			args = []byte(kwargs[0])
-		}
-		return
+		// only pick the param first?
+		// if kwargs, has := params["_kwargs"]; has {
+		// 	args = []byte(kwargs[0])
+		// }
+		return json.Marshal(params)
 	} else {
 		return nil, fmt.Errorf("loader: unsupported request type %s", req.Method)
 	}
