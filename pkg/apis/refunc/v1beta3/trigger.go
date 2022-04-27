@@ -68,6 +68,8 @@ type EventTrigger struct {
 // CronTrigger is a funcinst that will be scheduled by cron string
 type CronTrigger struct {
 	Cron string `json:"cron"`
+	// time zoneinfo location name
+	Location string `json:"location"`
 	// Args is passed to function
 	// Extra args will be appended to args
 	// $time: RFC3339 formated time

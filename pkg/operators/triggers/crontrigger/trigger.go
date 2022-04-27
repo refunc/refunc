@@ -26,8 +26,6 @@ import (
 type Operator struct {
 	*operators.BaseOperator
 
-	Offset time.Duration
-
 	ctx context.Context
 
 	triggers sync.Map
@@ -129,7 +127,7 @@ func (r *Operator) handleTriggerUpdate(oldObj, curObj interface{}) {
 		r.handleTriggerAdd(cur)
 		return
 	}
-	if (old.Spec.Cron != nil && cur.Spec.Cron != nil) && (old.Spec.Cron.Cron != cur.Spec.Cron.Cron) {
+	if (old.Spec.Cron != nil && cur.Spec.Cron != nil) && (old.Spec.Cron.Cron != cur.Spec.Cron.Cron || old.Spec.Cron.Location != cur.Spec.Cron.Location) {
 		// delete and reschedule
 		key := k8sKey(cur)
 		klog.V(3).Infof("(crontrigger) updating trigger %s", key)
@@ -168,17 +166,15 @@ func (tkp *timeKeyPair) String() string {
 
 func (r *Operator) scheduleTasks() {
 	var tkps []*timeKeyPair
-	now := time.Now()
-	now = now.Add(r.Offset)
 	r.triggers.Range(func(k, v interface{}) bool {
 		key := k.(string)
 		h := v.(*cronHandler)
-		next, err := h.Next(now)
+		next, err := h.Next()
 		if err != nil {
 			klog.Errorf("(crontrigger) %s failed to schedule, %v", key, err)
 			return true
 		}
-		tkps = append(tkps, &timeKeyPair{next.Add(-r.Offset), key})
+		tkps = append(tkps, &timeKeyPair{next, key})
 		return true
 	})
 	if len(tkps) > 0 {
@@ -228,7 +224,7 @@ func (r *Operator) ioLoop(stopC <-chan struct{}, events observer.Stream) {
 				continue
 			}
 			// original trigger was deleted or updated
-			if dur := first.t.Sub(time.Now()); dur > 0 {
+			if dur := time.Until(first.t); dur > 0 {
 				next = first.t
 				tickC = time.After(dur)
 				klog.Infof("(crontrigger) next %s@%v", first.key, next.Format(time.RFC3339))
