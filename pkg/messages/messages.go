@@ -8,8 +8,10 @@ import (
 )
 
 const (
+	//https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html#function-configuration-deployment-and-execution
+
 	//MaxPayloadSize is hard coded max size of each event can carray
-	MaxPayloadSize = 1 << 20 // 1 MB
+	MaxPayloadSize = 6 << 20 // 6 MB
 	// MaxTimeout is max execution time enfoced by runtime
 	MaxTimeout = 4 * time.Hour
 	// DefaultJobTimeout is hard coded max timeout for a task, same as AWS

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"k8s.io/klog"
@@ -28,11 +29,24 @@ type cronHandler struct {
 	operator *Operator
 }
 
-func (t *cronHandler) Next(now time.Time) (next time.Time, err error) {
+var tzdata sync.Map
+
+func (t *cronHandler) Next() (next time.Time, err error) {
 	trigger, err := t.operator.TriggerLister.Triggers(t.ns).Get(t.name)
 	if err != nil {
 		return
 	}
+
+	tz, ok := tzdata.Load(trigger.Spec.Cron.Location)
+	if !ok {
+		tz, err = time.LoadLocation(trigger.Spec.Cron.Location)
+		if err != nil {
+			return
+		}
+		tzdata.Store(trigger.Spec.Cron.Location, tz)
+	}
+	now := time.Now().In(tz.(*time.Location))
+
 	if !t.next.IsZero() && t.next.After(now) {
 		// trigger's cron is not changed, and trigger is not executed related to `now`, so return last evaluated time.
 		// this ensure cron expression with @every x, @hourly works well
