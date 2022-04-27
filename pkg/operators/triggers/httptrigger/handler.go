@@ -90,13 +90,18 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 			return
 		}
 
+		if req.ContentLength > messages.MaxPayloadSize {
+			writeHTTPError(rw, http.StatusBadRequest, `exceed max payload size limit`)
+			return
+		}
+
+		// parse payload
 		args, err := GetPayload(req)
 		if err != nil {
 			writeHTTPError(rw, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		// parse payload
 		data, err := SortArgs(args)
 		if err != nil {
 			writeHTTPError(rw, http.StatusBadRequest, err.Error())
@@ -109,13 +114,18 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 			writeHTTPError(rw, http.StatusBadRequest, err.Error())
 			return
 		}
+
+		if argsMap["$request"], err = GetRequest(req, args); err != nil {
+			writeHTTPError(rw, http.StatusBadRequest, err.Error())
+			return
+		}
 		argsMap["$method"] = strings.ToLower(req.Method)
 		data = messages.MustFromObject(argsMap)
 
+		// create request
 		rid := GetRequestID(req)
 		id := path.Join(t.fndKey, rid)
 
-		// create request
 		request := &messages.InvokeRequest{
 			Args:      data,
 			RequestID: rid,

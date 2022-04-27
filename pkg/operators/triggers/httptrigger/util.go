@@ -1,10 +1,13 @@
 package httptrigger
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/google/uuid"
 )
@@ -26,33 +29,39 @@ func flushRW(rw http.ResponseWriter) {
 
 // GetPayload retreive args' payload from request object
 func GetPayload(req *http.Request) (args []byte, err error) {
-	if req.Method == http.MethodPost || req.Method == http.MethodDelete {
-		if req.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-			err = req.ParseForm()
-			if err != nil {
-				return
-			}
-			params := make(map[string]interface{})
-			for k, v := range req.Form {
-				params[k] = v[0]
-			}
-			args, err = json.Marshal(params)
-			return
-		}
-		args, err = ioutil.ReadAll(req.Body)
-		req.Body.Close()
-		if err != nil {
-			return
-		}
-	} else if req.Method == http.MethodGet {
-		params := req.URL.Query()
-		// only pick the param first?
-		// if kwargs, has := params["_kwargs"]; has {
-		// 	args = []byte(kwargs[0])
-		// }
-		return json.Marshal(params)
-	} else {
-		return nil, fmt.Errorf("loader: unsupported request type %s", req.Method)
+	args, err = ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	req.Body = ioutil.NopCloser(bytes.NewReader(args))
+	return
+}
+
+type Request struct {
+	Method        string      `json:"method"`
+	Header        http.Header `json:"header"`
+	Body          string      `json:"body"`
+	ContentLength int64       `json:"contentLength"`
+	Host          string      `json:"host"`
+	Form          url.Values  `json:"form"`
+	PostForm      url.Values  `json:"postForm"`
+	RemoteAddr    string      `json:"remoteAddr"`
+	RequestURI    string      `json:"requestURI"`
+}
+
+func GetRequest(httpReq *http.Request, body []byte) (req Request, err error) {
+	err = httpReq.ParseForm()
+	if err != nil {
+		return
+	}
+	req = Request{
+		Method:        httpReq.Method,
+		Header:        httpReq.Header,
+		ContentLength: httpReq.ContentLength,
+		Body:          base64.StdEncoding.EncodeToString(body),
+		Host:          httpReq.Host,
+		Form:          httpReq.Form,
+		PostForm:      httpReq.PostForm,
+		RemoteAddr:    httpReq.RemoteAddr,
+		RequestURI:    httpReq.RequestURI,
 	}
 	return
 }
@@ -65,7 +74,8 @@ func SortArgs(args []byte) (json.RawMessage, error) {
 	}
 	var argsmap map[string]interface{}
 	if err := json.Unmarshal(args, &argsmap); err != nil {
-		return nil, err
+		// unable parse json args, fallback to empty input
+		return json.RawMessage([]byte{'{', '}'}), nil
 	}
 
 	// using golang's JSON to ensure keys are sorted
