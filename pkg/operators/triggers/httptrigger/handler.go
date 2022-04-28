@@ -62,7 +62,6 @@ func (t *httpHandler) setupHTTPEndpoints(router *mux.Router) {
 }
 
 func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWriter, *http.Request) {
-
 	return func(rw http.ResponseWriter, req *http.Request) {
 		defer func() {
 			if re := recover(); re != nil {
@@ -95,39 +94,24 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 			return
 		}
 
-		// parse payload
-		args, err := GetPayload(req)
+		// parse http.request to event
+		eventFunc, err := t.operator.triggerPlugins.loadPluginEvent(t.fndKey)
 		if err != nil {
-			writeHTTPError(rw, http.StatusBadRequest, err.Error())
+			writeHTTPError(rw, http.StatusBadRequest, fmt.Sprintf("event error:%v", err))
 			return
 		}
-
-		data, err := SortArgs(args)
+		args, err := eventFunc(req)
 		if err != nil {
-			writeHTTPError(rw, http.StatusBadRequest, err.Error())
+			writeHTTPError(rw, http.StatusBadRequest, fmt.Sprintf("event error:%v", err))
 			return
 		}
-
-		// insert meta keys
-		var argsMap map[string]interface{}
-		if err := json.Unmarshal(data, &argsMap); err != nil {
-			writeHTTPError(rw, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		if argsMap["$request"], err = GetRequest(req, args); err != nil {
-			writeHTTPError(rw, http.StatusBadRequest, err.Error())
-			return
-		}
-		argsMap["$method"] = strings.ToLower(req.Method)
-		data = messages.MustFromObject(argsMap)
 
 		// create request
 		rid := GetRequestID(req)
 		id := path.Join(t.fndKey, rid)
 
 		request := &messages.InvokeRequest{
-			Args:      data,
+			Args:      messages.MustFromObject(args),
 			RequestID: rid,
 			Options: map[string]interface{}{
 				"method": strings.ToLower(req.Method),

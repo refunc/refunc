@@ -81,6 +81,7 @@ type CronTrigger struct {
 type HTTPTrigger struct {
 	ContentType string `json:"contentType"`
 	Web         bool   `json:"web"`
+	Plugin      string `json:"plugin"`
 }
 
 // AsOwner returns *metav1.OwnerReference
