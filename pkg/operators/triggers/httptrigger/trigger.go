@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -42,7 +43,8 @@ type Operator struct {
 
 	ctx context.Context
 
-	triggers sync.Map
+	triggers       sync.Map
+	triggerPlugins *TriggerPlugins
 
 	liveTasks operators.LiveTaskStore
 
@@ -69,9 +71,10 @@ func NewOperator(
 	}
 
 	r := &Operator{
-		BaseOperator: base,
-		ctx:          ctx,
-		liveTasks:    operators.NewLiveTaskStore(),
+		BaseOperator:   base,
+		ctx:            ctx,
+		triggerPlugins: NewTriggerPlugins(),
+		liveTasks:      operators.NewLiveTaskStore(),
 	}
 
 	r.http.router = mmux.NewMutableRouter()
@@ -102,8 +105,20 @@ func (r *Operator) Run(stopC <-chan struct{}) {
 		r.http.cache = bc
 	}
 
+	updateHandler := func(fn func(interface{})) func(o, c interface{}) {
+		return func(oldObj, curObj interface{}) {
+			old, _ := meta.Accessor(oldObj)
+			cur, _ := meta.Accessor(curObj)
+			if old.GetResourceVersion() == cur.GetResourceVersion() {
+				return
+			}
+			fn(curObj)
+		}
+	}
+
 	r.RefuncInformers.Refunc().V1beta3().Triggers().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    r.handleTriggerAdd,
+		UpdateFunc: updateHandler(r.handleTriggerUpdate),
 		DeleteFunc: r.handleTriggerDelete,
 	})
 
@@ -138,6 +153,22 @@ func (r *Operator) handleTriggerAdd(o interface{}) {
 	if !loaded {
 		klog.V(3).Infof("(httptrigger) add new trigger %s", key)
 		r.popluateEndpoints()
+		if trigger.Spec.HTTPTrigger != nil {
+			r.triggerPlugins.installPlugin(fndKey(trigger), trigger.Spec.HTTPTrigger.Plugin)
+		}
+	}
+}
+
+func (r *Operator) handleTriggerUpdate(o interface{}) {
+	trigger := o.(*rfv1beta3.Trigger)
+	if trigger.Spec.Type != Type {
+		// skip other triggers
+		return
+	}
+	if trigger.Spec.HTTPTrigger != nil && trigger.Spec.HTTPTrigger.Plugin != "" {
+		r.triggerPlugins.reinstallPlugin(fndKey(trigger), trigger.Spec.HTTPTrigger.Plugin)
+	} else {
+		r.triggerPlugins.uninstallPlugin(fndKey(trigger))
 	}
 }
 
@@ -156,6 +187,7 @@ func (r *Operator) handleTriggerDelete(o interface{}) {
 	if _, ok := r.triggers.Load(key); ok {
 		klog.V(3).Infof("(httptrigger) delete trigger %s", key)
 		r.triggers.Delete(key)
+		r.triggerPlugins.uninstallPlugin(fndKey(trigger))
 		r.popluateEndpoints()
 	}
 }
@@ -172,6 +204,10 @@ func (r *Operator) popluateEndpoints() {
 
 func k8sKey(o metav1.Object) string {
 	return o.GetNamespace() + "/" + o.GetName()
+}
+
+func fndKey(trigger *rfv1beta3.Trigger) string {
+	return trigger.Namespace + "/" + trigger.Spec.FuncName
 }
 
 // DefaultRequestReadTimeout for http server
