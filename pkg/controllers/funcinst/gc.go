@@ -79,9 +79,12 @@ func (rc *Controller) collectGarbadge() {
 						// collected next turn
 						return false
 					}
-					if fndef.Spec.MinReplicas > 0 && cnt <= fndef.Spec.MinReplicas {
+
+					if fndef.Spec.MinReplicas > 0 && cnt < fndef.Spec.MinReplicas {
+						fniCounter[fnkey] = cnt + int32(funcinst.Status.Active)
 						return true
 					}
+
 					if time.Since(funcinst.Status.LastActivity()) < time.Duration(math.Max(float64(rc.IdleDuraion), float64(timeoutDur))) {
 						if cnt+int32(funcinst.Status.Active) >= fndef.Spec.MaxReplicas {
 							// max replicas reached, the following funinst with same funcdef will be marked as inactive
@@ -109,13 +112,10 @@ func (rc *Controller) collectGarbadge() {
 				}
 				return false
 			}()
+
 			if !deleteNow && fndef != nil && time.Since(funcinst.Status.LastActivity()) < timeoutDur {
 				// delete until idle long enough
-				klog.Infof(
-					"(tc:gc) %q will be removed in %v",
-					key,
-					funcinst.Status.LastActivity().Add(timeoutDur).Sub(time.Now()),
-				)
+				klog.Infof("(tc:gc) %q will be removed in %v", key, time.Until(funcinst.Status.LastActivity().Add(timeoutDur)))
 				return
 			}
 
