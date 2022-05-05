@@ -178,7 +178,7 @@ const codeLaunchBias = 10 * time.Second
 
 // ensureTask gets or creates a client.TaskResolver
 func (t *cronHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Trigger, ts string) (client.TaskResolver, bool, error) {
-	id := t.trKey + "@" + ts
+	id := utils.GenID([]byte(t.trKey + "@" + ts))
 	return t.operator.liveTasks.GetOrCreateTask(id, func() (_ client.TaskResolver, err error) {
 		defer func() {
 			re := recover()

@@ -130,8 +130,11 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 		}
 
 		// write reply as rquest id
-		rid := utils.GenID([]byte(msgReply))
-		req.RequestID = rid
+		rid := req.RequestID
+		if req.RequestID == "" {
+			rid = utils.GenID([]byte(msgReply))
+			req.RequestID = rid
+		}
 
 		// create session
 		var once sync.Once

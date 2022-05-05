@@ -22,7 +22,7 @@ func flushRW(rw http.ResponseWriter) {
 	}
 }
 
-func GetRequestID(req *http.Request) string {
+func getRequestID(req *http.Request) string {
 	id := req.Header.Get("X-Request-ID")
 	if id == "" {
 		id = uuid.New().String()
