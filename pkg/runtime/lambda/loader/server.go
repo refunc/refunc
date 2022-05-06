@@ -73,16 +73,6 @@ func (ld *simpleLoader) Start(ctx context.Context, addr string) error {
 }
 
 func (ld *simpleLoader) exec(fn *types.Function) error {
-	concurrency := withConcurrency(fn)
-	cmds := []*exec.Cmd{}
-	for i := 0; i < concurrency; i++ {
-		cmd, err := ld.prepare(fn)
-		if err != nil {
-			return err
-		}
-		cmds = append(cmds, cmd)
-	}
-
 	if apiAddr := fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"]; apiAddr != "" {
 		klog.Infoln("(loader) ping api")
 		for i := 0; i < 200; i++ {
@@ -103,6 +93,16 @@ func (ld *simpleLoader) exec(fn *types.Function) error {
 			}
 			break
 		}
+	}
+
+	concurrency := withConcurrency(fn)
+	cmds := []*exec.Cmd{}
+	for i := 0; i < concurrency; i++ {
+		cmd, err := ld.prepare(fn)
+		if err != nil {
+			return err
+		}
+		cmds = append(cmds, cmd)
 	}
 
 	wg := sync.WaitGroup{}

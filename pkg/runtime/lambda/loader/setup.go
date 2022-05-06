@@ -18,8 +18,10 @@ import (
 
 	"k8s.io/klog"
 
+	"github.com/Arvintian/websocketrwc"
 	shellwords "github.com/mattn/go-shellwords"
 	"github.com/mholt/archiver"
+	"github.com/nats-io/nuid"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/runtime/types"
 	"github.com/refunc/refunc/pkg/utils"
@@ -104,11 +106,31 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 }
 
 func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
+	// redirect func's stdout/stderr log
+	var stdout io.Writer = os.Stderr
+	if apiAddr := fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"]; apiAddr != "" {
+		wid := nuid.Next()
+		if conn, _, err := websocketrwc.Dial(fmt.Sprintf("ws://%s/2018-06-01/%s/log", apiAddr, wid), nil, nil); err != nil {
+			klog.Errorf("(loader) redirect stdout/stderr log faild %v", err)
+		} else {
+			klog.Infof("(loader) redirect stdout/stderr log to %s.%s", fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"], wid)
+			stdout = conn
+			// read loop for driver ping/pong handler
+			go func() {
+				var buf [128]byte
+				for {
+					if _, err := conn.Read(buf[:]); err != nil {
+						klog.Errorf("(loader) redirect stdout/stderr stream reader faild %v", err)
+						return
+					}
+				}
+			}()
+		}
+	}
+
 	// prepare locals
 	var env []string
-	for _, kv := range os.Environ() {
-		env = append(env, kv)
-	}
+	env = append(env, os.Environ()...)
 	for k, v := range fn.Spec.Runtime.Envs {
 		if v != "" {
 			// try to expand env
@@ -146,8 +168,8 @@ func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
 	cmd := exec.CommandContext(ld.ctx, fn.Spec.Cmd[0], fn.Spec.Cmd[1:]...)
 	cmd.Env = env
 	cmd.Dir = ld.taskRoot()
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = stdout
+	cmd.Stderr = stdout
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if os.Geteuid() == 0 {
 		klog.Info("(loader) will start using user sbx_user1051")

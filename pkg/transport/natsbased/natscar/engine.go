@@ -56,7 +56,6 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 		svcEndpoint    = fn.Spec.Runtime.Envs["REFUNC_SVC_ENDPOINT"]
 		tapEndpoint    = fn.Spec.Runtime.Envs["REFUNC_TAP_ENDPOINT"]
 		crysvcEndpoint = fn.Spec.Runtime.Envs["REFUNC_CRY_SVC_ENDPOINT"]
-		// logEndpoint    = fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"]
 	)
 
 	eng.fn = fn
@@ -246,6 +245,11 @@ func (eng *engine) SetResult(rid string, body []byte, err error, conentType stri
 	klog.Warningf("(natscar) cannot find request %q", rid)
 	//prevent lambda runtime client panic
 	return nil
+}
+
+func (eng *engine) WriteLog(wid string, bts []byte) {
+	logEndpoint := fmt.Sprintf("%s.%s", eng.fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"], wid)
+	eng.publish(logEndpoint, bts)
 }
 
 func (eng *engine) ReportInitError(err error) {

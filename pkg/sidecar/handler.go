@@ -10,6 +10,7 @@ import (
 
 	"k8s.io/klog"
 
+	"github.com/Arvintian/websocketrwc"
 	"github.com/gorilla/mux"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/utils"
@@ -19,6 +20,7 @@ import (
 func (sc *Sidecar) reigsterHandlers(router *mux.Router) {
 	apirouter := router.PathPrefix("/" + APIVersion).Subrouter()
 	apirouter.Path("/ping").HandlerFunc(sc.handlePing).Methods(http.MethodGet)
+	apirouter.Path("/{wid}/log").HandlerFunc(sc.handleLog).Methods(http.MethodGet)
 
 	runtimerouter := apirouter.PathPrefix("/runtime").Subrouter()
 	runtimerouter.Path("/invocation/next").HandlerFunc(sc.handleInvocationNext).Methods(http.MethodGet)
@@ -29,6 +31,25 @@ func (sc *Sidecar) reigsterHandlers(router *mux.Router) {
 
 func (sc *Sidecar) handlePing(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("pong")) //nolint:errcheck
+}
+
+func (sc *Sidecar) handleLog(w http.ResponseWriter, r *http.Request) {
+	wid := mux.Vars(r)["wid"]
+	conn, err := websocketrwc.Upgrade(w, r, nil, nil)
+	if err != nil {
+		klog.Errorf("(car) handler log connect faild %v", err)
+		return
+	}
+	klog.Infof("(car) handle log stream endpoint %s", wid)
+	var buf [4096]byte
+	for {
+		n, err := conn.Read(buf[:])
+		if err != nil {
+			klog.Errorf("(car) handle log read faild %v", err)
+			return
+		}
+		sc.eng.WriteLog(wid, buf[:n])
+	}
 }
 
 func (sc *Sidecar) handleInvocationNext(w http.ResponseWriter, r *http.Request) {

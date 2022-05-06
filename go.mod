@@ -3,6 +3,7 @@ module github.com/refunc/refunc
 go 1.12
 
 require (
+	github.com/Arvintian/websocketrwc v0.0.7
 	github.com/allegro/bigcache v1.2.1
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/dsnet/compress v0.0.1 // indirect

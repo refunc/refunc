@@ -40,6 +40,8 @@ type Engine interface {
 	InvokeRequest() *messages.InvokeRequest
 	// SetResult teminates a reqeust corresponding to its reqeust id (rid)
 	SetResult(rid string, body []byte, err error, conentType string) error
+	// WriteLog collect func's worker process (wid) log
+	WriteLog(wid string, bts []byte)
 }
 
 // Loader discovers and loads function runtime config
