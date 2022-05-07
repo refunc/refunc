@@ -40,7 +40,11 @@ func (sc *Sidecar) handleLog(w http.ResponseWriter, r *http.Request) {
 		klog.Errorf("(car) handler log connect faild %v", err)
 		return
 	}
+
 	klog.Infof("(car) handle log stream endpoint %s", wid)
+	sc.logStreams.Store(wid, conn)
+	defer sc.logStreams.Delete(wid)
+
 	var buf [4096]byte
 	for {
 		n, err := conn.Read(buf[:])
@@ -49,6 +53,12 @@ func (sc *Sidecar) handleLog(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		sc.eng.WriteLog(wid, buf[:n])
+
+		// previous request log have write out completed?
+		// forward log is useful to debug?
+		if forwardEndpoint, ok := sc.logForwards.Load(wid); ok {
+			sc.eng.ForwardLog(forwardEndpoint.(string), buf[:n])
+		}
 	}
 }
 
@@ -69,6 +79,13 @@ WAIT_LOOP:
 			if request != nil {
 				break WAIT_LOOP
 			}
+		}
+	}
+
+	wid := r.Header.Get("Refunc-Worker-ID")
+	if wid != "" && request.Options != nil {
+		if forwardLogEndpoint, ok := request.Options["logEndpoint"]; ok {
+			sc.logForwards.Store(wid, forwardLogEndpoint)
 		}
 	}
 
@@ -154,9 +171,12 @@ func (sc *Sidecar) handleError(w http.ResponseWriter, r *http.Request) {
 	w.(http.Flusher).Flush()
 }
 
-// TODO(bin)
 func (sc *Sidecar) checkRequestID(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		wid := r.Header.Get("Refunc-Worker-ID")
+		if wid != "" {
+			sc.logForwards.Delete(wid)
+		}
 		next(w, r)
 	}
 }

@@ -3,10 +3,13 @@ package loader
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -15,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"k8s.io/klog"
 
@@ -106,10 +110,12 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 }
 
 func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
+	wid := nuid.Next()
+	apiAddr := fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"]
+
 	// redirect func's stdout/stderr log
 	var stdout io.Writer = os.Stderr
-	if apiAddr := fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"]; apiAddr != "" {
-		wid := nuid.Next()
+	if apiAddr != "" {
 		if conn, _, err := websocketrwc.Dial(fmt.Sprintf("ws://%s/2018-06-01/%s/log", apiAddr, wid), nil, nil); err != nil {
 			klog.Errorf("(loader) redirect stdout/stderr log faild %v", err)
 		} else {
@@ -128,10 +134,23 @@ func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
 		}
 	}
 
+	// proxy runtime api
+	if apiAddr != "" {
+		if runtimeAddr, err := withProxyRuntimeAPI(wid, apiAddr); err != nil {
+			klog.Errorf("(loader) prepare proxy runtime error %v", err)
+		} else {
+			klog.Infof("(loader) proxy worker %s runtime at %s", wid, runtimeAddr)
+			apiAddr = runtimeAddr
+		}
+	}
+
 	// prepare locals
 	var env []string
 	env = append(env, os.Environ()...)
 	for k, v := range fn.Spec.Runtime.Envs {
+		if k == "AWS_LAMBDA_RUNTIME_API" {
+			v = apiAddr
+		}
 		if v != "" {
 			// try to expand env
 			if strings.HasPrefix(v, "$") {
@@ -263,4 +282,48 @@ func withConcurrency(fn *types.Function) int {
 		return v
 	}
 	return 1
+}
+
+func withProxyRuntimeAPI(wid string, apiAddr string) (string, error) {
+	url, err := url.Parse(fmt.Sprintf("http://%s/", apiAddr))
+	if err != nil {
+		return "", err
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", err
+	}
+
+	go func(l net.Listener) {
+		defer l.Close()
+		server := &http.Server{}
+		handler := &http.ServeMux{}
+		proxy := httputil.NewSingleHostReverseProxy(url)
+		handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			r.Header.Add("Refunc-Worker-ID", wid)
+			proxy.ServeHTTP(w, r)
+		})
+		server.Handler = handler
+		if err := server.Serve(l); err != nil {
+			klog.Errorf("(loader) proxy runtime server %s err %v", wid, err)
+		}
+	}(listener)
+
+	for i := 0; i < 200; i++ {
+		res, err := http.Get("http://" + listener.Addr().String() + "/2018-06-01/ping")
+		if err != nil {
+			<-time.After(5 * time.Millisecond)
+			continue
+		}
+
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil || string(body) != "pong" {
+			return "", errors.New("loader: failed to reqeust api")
+		}
+		break
+	}
+
+	return listener.Addr().String(), nil
 }

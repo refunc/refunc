@@ -252,6 +252,10 @@ func (eng *engine) WriteLog(wid string, bts []byte) {
 	eng.publish(logEndpoint, bts)
 }
 
+func (eng *engine) ForwardLog(endpoint string, bts []byte) {
+	eng.publish(endpoint, bts)
+}
+
 func (eng *engine) ReportInitError(err error) {
 	klog.Infof("(natscar) ReportInitError: %v", err)
 }

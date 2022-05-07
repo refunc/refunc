@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"sync"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -42,6 +43,8 @@ type Engine interface {
 	SetResult(rid string, body []byte, err error, conentType string) error
 	// WriteLog collect func's worker process (wid) log
 	WriteLog(wid string, bts []byte)
+	// ForwardLog collect func's log for request
+	ForwardLog(endpoint string, bts []byte)
 }
 
 // Loader discovers and loads function runtime config
@@ -57,6 +60,9 @@ type Sidecar struct {
 	loader Loader
 
 	fn *types.Function
+
+	logForwards sync.Map
+	logStreams  sync.Map
 
 	cancel context.CancelFunc
 }
