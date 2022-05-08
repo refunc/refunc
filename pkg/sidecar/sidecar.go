@@ -18,6 +18,7 @@ import (
 
 // APIVersion for current sidecard
 const APIVersion = "2018-06-01"
+const RefuncRoot = "/var/run/refunc"
 
 // Engine is car engine implemented by different transport to commnicate with its operator
 type Engine interface {

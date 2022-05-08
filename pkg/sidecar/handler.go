@@ -2,15 +2,18 @@ package sidecar
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
+	"syscall"
 	"time"
 
 	"k8s.io/klog"
 
-	"github.com/Arvintian/websocketrwc"
 	"github.com/gorilla/mux"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/utils"
@@ -35,31 +38,43 @@ func (sc *Sidecar) handlePing(w http.ResponseWriter, r *http.Request) {
 
 func (sc *Sidecar) handleLog(w http.ResponseWriter, r *http.Request) {
 	wid := mux.Vars(r)["wid"]
-	conn, err := websocketrwc.Upgrade(w, r, nil, nil)
-	if err != nil {
-		klog.Errorf("(car) handler log connect faild %v", err)
+
+	pipeFile := fmt.Sprintf("%s/%s.log.pipe", RefuncRoot, wid)
+	if err := syscall.Mkfifo(pipeFile, 0666); err != nil {
+		w.Write([]byte("error"))
 		return
 	}
 
-	klog.Infof("(car) handle log stream endpoint %s", wid)
-	sc.logStreams.Store(wid, conn)
-	defer sc.logStreams.Delete(wid)
-
-	var buf [4096]byte
-	for {
-		n, err := conn.Read(buf[:])
-		if err != nil {
-			klog.Errorf("(car) handle log read faild %v", err)
-			return
-		}
-		sc.eng.WriteLog(wid, buf[:n])
-
-		// previous request log have write out completed?
-		// forward log is useful to debug?
-		if forwardEndpoint, ok := sc.logForwards.Load(wid); ok {
-			sc.eng.ForwardLog(forwardEndpoint.(string), buf[:n])
-		}
+	fd, err := os.OpenFile(pipeFile, os.O_RDWR, fs.ModeNamedPipe)
+	if err != nil {
+		w.Write([]byte("error"))
+		return
 	}
+
+	sc.logStreams.Store(wid, fd)
+	klog.Infof("(car) handle log stream %s", wid)
+
+	go func() {
+		defer sc.logStreams.Delete(wid)
+
+		var buf [4096]byte
+		for {
+			n, err := fd.Read(buf[:])
+			if err != nil {
+				klog.Errorf("(car) handle log read faild %v", err)
+				return
+			}
+			sc.eng.WriteLog(wid, buf[:n])
+
+			// previous request log have write out completed?
+			// forward log is useful to debug?
+			if forwardEndpoint, ok := sc.logForwards.Load(wid); ok {
+				sc.eng.ForwardLog(forwardEndpoint.(string), buf[:n])
+			}
+		}
+	}()
+
+	w.Write([]byte(pipeFile))
 }
 
 func (sc *Sidecar) handleInvocationNext(w http.ResponseWriter, r *http.Request) {

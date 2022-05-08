@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/Arvintian/websocketrwc"
 	shellwords "github.com/mattn/go-shellwords"
 	"github.com/mholt/archiver"
 	"github.com/nats-io/nuid"
@@ -116,21 +116,11 @@ func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
 	// redirect func's stdout/stderr log
 	var stdout io.Writer = os.Stderr
 	if apiAddr != "" {
-		if conn, _, err := websocketrwc.Dial(fmt.Sprintf("ws://%s/2018-06-01/%s/log", apiAddr, wid), nil, nil); err != nil {
+		if stream, err := withLogStream(wid, apiAddr); err != nil {
 			klog.Errorf("(loader) redirect stdout/stderr log faild %v", err)
 		} else {
-			klog.Infof("(loader) redirect stdout/stderr log to %s.%s", fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"], wid)
-			stdout = conn
-			// read loop for driver ping/pong handler
-			go func() {
-				var buf [128]byte
-				for {
-					if _, err := conn.Read(buf[:]); err != nil {
-						klog.Errorf("(loader) redirect stdout/stderr stream reader faild %v", err)
-						return
-					}
-				}
-			}()
+			klog.Infof("(loader) redirect stdout/stderr log to %s", stream.Name())
+			stdout = stream
 		}
 	}
 
@@ -326,4 +316,18 @@ func withProxyRuntimeAPI(wid string, apiAddr string) (string, error) {
 	}
 
 	return listener.Addr().String(), nil
+}
+
+func withLogStream(wid string, apiAddr string) (*os.File, error) {
+	res, err := http.Get(fmt.Sprintf("http://%s/2018-06-01/%s/log", apiAddr, wid))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil || string(body) == "error" {
+		return nil, errors.New("loader: failed to reqeust log api")
+	}
+	// open named pipe
+	return os.OpenFile(string(body), os.O_RDWR, fs.ModeNamedPipe)
 }
