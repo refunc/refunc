@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/klog"
 
+	"github.com/refunc/refunc/pkg/logger"
 	"github.com/refunc/refunc/pkg/runtime/lambda/loader"
 	"github.com/refunc/refunc/pkg/sidecar"
 	"github.com/refunc/refunc/pkg/sidecar/fsloader"
@@ -20,11 +21,13 @@ import (
 var config struct {
 	Addr       string
 	RefuncRoot string
+	Logger     string
 }
 
 func init() {
 	pflag.StringVarP(&config.Addr, "listen", "l", "127.0.0.1:80", "The listen address")
 	pflag.StringVar(&config.RefuncRoot, "refunc-root", loader.RefuncRoot, "The root of layers folder")
+	pflag.StringVar(&config.Logger, "logger", "stdout", "The logger of func logging")
 }
 
 func main() {
@@ -48,9 +51,14 @@ func main() {
 		klog.Exitf("Failed to creats loader, %v", err)
 	}
 
+	logger, err := logger.CreateLogger(ctx, config.Logger)
+	if err != nil {
+		klog.Exitf("Failed to create logger, %v", err)
+	}
+
 	eng := natscar.NewEngine()
 
-	car := sidecar.NewCar(eng, ld)
+	car := sidecar.NewCar(eng, ld, logger)
 
 	go func() {
 		klog.Infof(`received signal "%v", exiting...`, <-cmdutil.GetSysSig())

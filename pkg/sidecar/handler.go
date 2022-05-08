@@ -3,6 +3,7 @@ package sidecar
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"net/http"
@@ -52,29 +53,34 @@ func (sc *Sidecar) handleLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sc.logStreams.Store(wid, fd)
-	klog.Infof("(car) handle log stream %s", wid)
-
-	go func() {
-		defer sc.logStreams.Delete(wid)
-
-		var buf [4096]byte
-		for {
-			n, err := fd.Read(buf[:])
-			if err != nil {
-				klog.Errorf("(car) handle log read faild %v", err)
-				return
-			}
-			sc.eng.WriteLog(wid, buf[:n])
-
-			// previous request log have write out completed?
-			// forward log is useful to debug?
-			if forwardEndpoint, ok := sc.logForwards.Load(wid); ok {
-				sc.eng.ForwardLog(forwardEndpoint.(string), buf[:n])
-			}
-		}
-	}()
+	go sc.tailLog(wid, fd)
 
 	w.Write([]byte(pipeFile))
+}
+
+func (sc *Sidecar) tailLog(wid string, fd io.Reader) {
+	logEndpoint := fmt.Sprintf("%s.%s", sc.fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"], wid)
+
+	klog.Infof("(car) tail log stream %s", wid)
+
+	defer sc.logStreams.Delete(wid)
+
+	var buf [4096]byte
+	for {
+		n, err := fd.Read(buf[:])
+		if err != nil {
+			klog.Errorf("(car) tail log read faild %s %v", wid, err)
+			return
+		}
+
+		// previous request log have write out completed?
+		// forward log is useful to debug?
+		if forwardEndpoint, ok := sc.logForwards.Load(wid); ok {
+			sc.eng.ForwardLog(forwardEndpoint.(string), buf[:n])
+		}
+
+		sc.logger.WriteLog(logEndpoint, buf[:n])
+	}
 }
 
 func (sc *Sidecar) handleInvocationNext(w http.ResponseWriter, r *http.Request) {

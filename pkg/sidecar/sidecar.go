@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/refunc/refunc/pkg/logger"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/runtime/types"
 	"github.com/refunc/refunc/pkg/utils/logtools"
@@ -42,8 +43,6 @@ type Engine interface {
 	InvokeRequest() *messages.InvokeRequest
 	// SetResult teminates a reqeust corresponding to its reqeust id (rid)
 	SetResult(rid string, body []byte, err error, conentType string) error
-	// WriteLog collect func's worker process (wid) log
-	WriteLog(wid string, bts []byte)
 	// ForwardLog collect func's log for request
 	ForwardLog(endpoint string, bts []byte)
 }
@@ -59,6 +58,7 @@ type Loader interface {
 type Sidecar struct {
 	eng    Engine
 	loader Loader
+	logger logger.Logger
 
 	fn *types.Function
 
@@ -69,10 +69,11 @@ type Sidecar struct {
 }
 
 // NewCar returns new sidecar from given engine and loader
-func NewCar(engine Engine, loader Loader) *Sidecar {
+func NewCar(engine Engine, loader Loader, logger logger.Logger) *Sidecar {
 	return &Sidecar{
 		eng:    engine,
 		loader: loader,
+		logger: logger,
 	}
 }
 

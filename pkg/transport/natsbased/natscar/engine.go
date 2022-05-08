@@ -247,11 +247,6 @@ func (eng *engine) SetResult(rid string, body []byte, err error, conentType stri
 	return nil
 }
 
-func (eng *engine) WriteLog(wid string, bts []byte) {
-	logEndpoint := fmt.Sprintf("%s.%s", eng.fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"], wid)
-	eng.publish(logEndpoint, bts)
-}
-
 func (eng *engine) ForwardLog(endpoint string, bts []byte) {
 	eng.publish(endpoint, bts)
 }
