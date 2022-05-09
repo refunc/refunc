@@ -61,13 +61,7 @@ func NewNatsResolver(ctx context.Context, nc *nats.Conn, endpoint string, reques
 		logger.Infof("%s start receiving logs", tr.name)
 		logsEndpoint := fmt.Sprintf("_refunc.forwardlogs.%s.%s", strings.Replace(endpoint, "/", ".", -1), nuid.Next())
 		subs, err := nc.Subscribe(logsEndpoint, func(msg *nats.Msg) {
-			var action *messages.Action
-			if err := json.Unmarshal(msg.Data, &action); err != nil {
-				return
-			}
-			if action.Type == messages.Log {
-				tr.UpdateLog(action.Payload)
-			}
+			tr.UpdateLog(msg.Data)
 		})
 		if err != nil {
 			tr.SetResult(nil, err)
