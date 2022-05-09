@@ -1,6 +1,9 @@
 package sidecar
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -58,6 +61,8 @@ func (sc *Sidecar) handleLog(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(pipeFile))
 }
 
+var LogFrameDelimer = []byte{165, 90, 0, 1} //0xA55A0001
+
 func (sc *Sidecar) tailLog(wid string, fd io.Reader) {
 	logEndpoint := fmt.Sprintf("%s.%s", sc.fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"], wid)
 
@@ -65,22 +70,44 @@ func (sc *Sidecar) tailLog(wid string, fd io.Reader) {
 
 	defer sc.logStreams.Delete(wid)
 
-	var buf [4096]byte
-	for {
-		n, err := fd.Read(buf[:])
-		if err != nil {
-			klog.Errorf("(car) tail log read faild %s %v", wid, err)
-			return
-		}
+	decodeLog := func(data []byte) (string, []byte) {
+		var offset uint32 = 0
+		var offlen uint32 = 4
+		endpointLen := binary.BigEndian.Uint32(data[offset : offset+offlen])
+		endpoint := string(data[offset+offlen : offset+offlen+endpointLen])
 
-		// previous request log have write out completed?
-		// forward log is useful to debug?
-		if forwardEndpoint, ok := sc.logForwards.Load(wid); ok {
-			sc.eng.ForwardLog(forwardEndpoint.(string), buf[:n])
-		}
-
-		sc.logger.WriteLog(logEndpoint, buf[:n])
+		offset = offset + offlen + endpointLen
+		payloadLen := binary.BigEndian.Uint32(data[offset : offset+offlen])
+		payload := data[offset+offlen : offset+offlen+payloadLen]
+		return endpoint, payload
 	}
+
+	scanner := bufio.NewScanner(fd)
+	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if i := bytes.Index(data, LogFrameDelimer); i >= 0 {
+			if len(data[:i]) == 0 {
+				return i + len(LogFrameDelimer), nil, nil
+			}
+			return i + len(LogFrameDelimer), data[:i], nil
+		}
+		if atEOF {
+			return 0, data, bufio.ErrFinalToken
+		}
+		return 0, nil, nil
+	})
+
+	for scanner.Scan() {
+		bts := scanner.Bytes()
+		forward, msg := decodeLog(bts)
+		if forward != "" {
+			sc.eng.ForwardLog(forward, msg)
+		}
+		sc.logger.WriteLog(logEndpoint, msg)
+	}
+	if err := scanner.Err(); err != nil {
+		klog.Errorf("(car) tail log read faild %s %v", wid, err)
+	}
+
 }
 
 func (sc *Sidecar) handleInvocationNext(w http.ResponseWriter, r *http.Request) {
@@ -103,13 +130,6 @@ WAIT_LOOP:
 		}
 	}
 
-	wid := r.Header.Get("Refunc-Worker-ID")
-	if wid != "" && request.Options != nil {
-		if forwardLogEndpoint, ok := request.Options["logEndpoint"]; ok {
-			sc.logForwards.Store(wid, forwardLogEndpoint)
-		}
-	}
-
 	deadline := request.Deadline
 	if deadline.IsZero() {
 		// FIXME (bin)
@@ -128,6 +148,12 @@ WAIT_LOOP:
 	w.Header().Set("Lambda-Runtime-Deadline-Ms", strconv.FormatInt(deadline.UnixNano()/1e6, 10))
 	w.Header().Set("Lambda-Runtime-Invoked-Function-Arn", sc.fn.ARN())
 	w.Header().Set("Lambda-Runtime-Trace-Id", request.TraceID)
+
+	if request.Options != nil {
+		if forwardLogEndpoint, ok := request.Options["logEndpoint"]; ok {
+			w.Header().Set("Lambda-Runtime-Forward-Log-Endpoint", forwardLogEndpoint.(string))
+		}
+	}
 
 	// w.Header().Set("Lambda-Runtime-Client-Context", xxx)
 	// w.Header().Set("Lambda-Runtime-Cognito-Identity", xxx)
@@ -194,10 +220,6 @@ func (sc *Sidecar) handleError(w http.ResponseWriter, r *http.Request) {
 
 func (sc *Sidecar) checkRequestID(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		wid := r.Header.Get("Refunc-Worker-ID")
-		if wid != "" {
-			sc.logForwards.Delete(wid)
-		}
 		next(w, r)
 	}
 }

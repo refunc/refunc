@@ -62,8 +62,7 @@ type Sidecar struct {
 
 	fn *types.Function
 
-	logForwards sync.Map
-	logStreams  sync.Map
+	logStreams sync.Map
 
 	cancel context.CancelFunc
 }

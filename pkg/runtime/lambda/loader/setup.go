@@ -2,6 +2,7 @@ package loader
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -112,21 +114,21 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
 	wid := nuid.Next()
 	apiAddr := fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"]
+	state := &sync.Map{}
 
 	// redirect func's stdout/stderr log
 	var stdout io.Writer = os.Stderr
 	if apiAddr != "" {
-		if stream, err := withLogStream(wid, apiAddr); err != nil {
+		if stream, err := withLogStream(wid, apiAddr, state); err != nil {
 			klog.Errorf("(loader) redirect stdout/stderr log faild %v", err)
 		} else {
-			klog.Infof("(loader) redirect stdout/stderr log to %s", stream.Name())
 			stdout = stream
 		}
 	}
 
 	// proxy runtime api
 	if apiAddr != "" {
-		if runtimeAddr, err := withProxyRuntimeAPI(wid, apiAddr); err != nil {
+		if runtimeAddr, err := withProxyRuntimeAPI(wid, apiAddr, state); err != nil {
 			klog.Errorf("(loader) prepare proxy runtime error %v", err)
 		} else {
 			klog.Infof("(loader) proxy worker %s runtime at %s", wid, runtimeAddr)
@@ -274,7 +276,20 @@ func withConcurrency(fn *types.Function) int {
 	return 1
 }
 
-func withProxyRuntimeAPI(wid string, apiAddr string) (string, error) {
+type proxyTransport struct {
+	state *sync.Map
+}
+
+func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	rsp, err := http.DefaultTransport.RoundTrip(req)
+	logEndpoint := rsp.Header.Get("Lambda-Runtime-Forward-Log-Endpoint")
+	if logEndpoint != "" {
+		t.state.Store("logEndpoint", logEndpoint)
+	}
+	return rsp, err
+}
+
+func withProxyRuntimeAPI(wid string, apiAddr string, state *sync.Map) (string, error) {
 	url, err := url.Parse(fmt.Sprintf("http://%s/", apiAddr))
 	if err != nil {
 		return "", err
@@ -290,6 +305,9 @@ func withProxyRuntimeAPI(wid string, apiAddr string) (string, error) {
 		server := &http.Server{}
 		handler := &http.ServeMux{}
 		proxy := httputil.NewSingleHostReverseProxy(url)
+		proxy.Transport = &proxyTransport{
+			state: state,
+		}
 		handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			r.Header.Add("Refunc-Worker-ID", wid)
 			proxy.ServeHTTP(w, r)
@@ -318,7 +336,56 @@ func withProxyRuntimeAPI(wid string, apiAddr string) (string, error) {
 	return listener.Addr().String(), nil
 }
 
-func withLogStream(wid string, apiAddr string) (*os.File, error) {
+type logStreamWriter struct {
+	fd    *os.File
+	state *sync.Map
+}
+
+func (s *logStreamWriter) Write(bts []byte) (int, error) {
+	/*
+	   Implements the logging contract between runtimes and the platform. It implements a simple
+	   framing protocol so message boundaries can be determined. Each frame can be visualized as follows:
+	   +----------------------------+----------------------+------------------------+-----------------------+--------------------------+
+	   | LogEndpoint(len) - 4 bytes | Endpoint 'len' bytes | Length (len) - 4 bytes | Message - 'len' bytes |  Frame Delimer - 4 bytes |
+	   +----------------------------+----------------------+------------------------+-----------------------+--------------------------+
+	   Log frames delimer have a defined as the hex value 0xa55a0001.
+	*/
+
+	value, ok := s.state.Load("logEndpoint")
+	if !ok {
+		value = ""
+	}
+	logEndpoint := []byte(value.(string))
+
+	var btsLen [4]byte
+
+	//LogEndpoint
+	binary.BigEndian.PutUint32(btsLen[:], uint32(len(logEndpoint)))
+	if _, err := s.fd.Write(btsLen[:]); err != nil {
+		return 0, err
+	}
+	if _, err := s.fd.Write(logEndpoint); err != nil {
+		return 0, err
+	}
+
+	//Message
+	binary.BigEndian.PutUint32(btsLen[:], uint32(len(bts)))
+	if _, err := s.fd.Write(btsLen[:]); err != nil {
+		return 0, err
+	}
+	if n, err := s.fd.Write(bts); err != nil {
+		return n, err
+	}
+
+	//FrameDelimer
+	if _, err := s.fd.Write(LogFrameDelimer); err != nil {
+		return len(bts), err
+	}
+
+	return len(bts), nil
+}
+
+func withLogStream(wid string, apiAddr string, state *sync.Map) (io.Writer, error) {
 	res, err := http.Get(fmt.Sprintf("http://%s/2018-06-01/%s/log", apiAddr, wid))
 	if err != nil {
 		return nil, err
@@ -329,5 +396,12 @@ func withLogStream(wid string, apiAddr string) (*os.File, error) {
 		return nil, errors.New("loader: failed to reqeust log api")
 	}
 	// open named pipe
-	return os.OpenFile(string(body), os.O_RDWR, fs.ModeNamedPipe)
+	fd, err := os.OpenFile(string(body), os.O_RDWR, fs.ModeNamedPipe)
+	if err != nil {
+		return nil, fmt.Errorf("loader: failed to open named pipe %s", string(body))
+	}
+	return &logStreamWriter{
+		fd:    fd,
+		state: state,
+	}, nil
 }
