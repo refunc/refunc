@@ -37,10 +37,10 @@ func (l *loader) Function() *types.Function {
 }
 
 func (l *loader) loadConfig() (ok bool) {
-	defer func() {
-		// TODO issue token for funcinst
-		os.Remove(l.file)
-	}()
+	// TODO issue token for funcinst
+	// defer func() {
+	// 	os.Remove(l.file)
+	// }()
 	if _, err := os.Stat(l.file); os.IsNotExist(err) {
 		return
 	}

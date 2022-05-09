@@ -8,3 +8,5 @@ const (
 
 	MaxLambdaConcurrency = 32
 )
+
+var LogFrameDelimer = []byte{165, 90, 0, 1} //0xA55A0001

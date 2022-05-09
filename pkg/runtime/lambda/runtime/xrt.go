@@ -336,10 +336,17 @@ func (rt *lambda) genFunction(pod *corev1.Pod, fninst *rfv1beta3.Funcinst, fndef
 	if len(fn.Spec.Runtime.Envs) == 0 {
 		fn.Spec.Runtime.Envs = make(map[string]string)
 	}
+
+	// refunc
+	fn.Spec.Runtime.Envs["REFUNC_TOKEN"] = fninst.Spec.Runtime.Credentials.Token
+	fn.Spec.Runtime.Envs["REFUNC_ACCESS_KEY"] = fninst.Spec.Runtime.Credentials.AccessKey
+	fn.Spec.Runtime.Envs["REFUNC_SECRET_KEY"] = fninst.Spec.Runtime.Credentials.SecretKey
 	fn.Spec.Runtime.Envs["REFUNC_MINIO_ENDPOINT"] = env.GlobalMinioEndpoint
 	fn.Spec.Runtime.Envs["REFUNC_MINIO_PUBLIC_ENDPOINT"] = env.GlobalMinioPublicEndpoint
 	fn.Spec.Runtime.Envs["REFUNC_MINIO_BUCKET"] = env.GlobalBucket
+	fn.Spec.Runtime.Envs["REFUNC_MINIO_SCOPE"] = fninst.Spec.Runtime.Permissions.Scope
 	fn.Spec.Runtime.Envs["REFUNC_NATS_ENDPOINT"] = env.GlobalNATSEndpoint
+
 	// nats endpoints
 	fn.Spec.Runtime.Envs["REFUNC_CRY_ENDPOINT"] = fninst.CryingEndpoint()
 	fn.Spec.Runtime.Envs["REFUNC_TAP_ENDPOINT"] = fninst.TappingEndpoint()
@@ -373,17 +380,6 @@ func (rt *lambda) genFunction(pod *corev1.Pod, fninst *rfv1beta3.Funcinst, fndef
 	fn.Spec.Runtime.Envs["AWS_LAMBDA_COGNITO_IDENTITY"] = ""
 	fn.Spec.Runtime.Envs["_X_AMZN_TRACE_ID"] = ""
 	fn.Spec.Runtime.Envs["_HANDLER"] = fn.Spec.Entry
-
-	// utils for tensorflow
-	fn.Spec.Runtime.Envs["S3_ENDPOINT"] = env.GlobalMinioPublicEndpoint
-	if strings.HasPrefix(env.GlobalMinioPublicEndpoint, "https://") {
-		fn.Spec.Runtime.Envs["S3_USE_HTTPS"] = "1"
-	} else {
-		fn.Spec.Runtime.Envs["S3_USE_HTTPS"] = "0"
-	}
-	if fninst.Spec.Runtime.Permissions.Scope != "" {
-		fn.Spec.Runtime.Envs["S3_PREFIX"] = fmt.Sprintf("s3://%s/%s", env.GlobalBucket, strings.TrimSuffix(fninst.Spec.Runtime.Permissions.Scope, "/"))
-	}
 
 	if strings.HasPrefix(fn.Spec.Body, "s3://") || strings.HasPrefix(fn.Spec.Body, "minio://") {
 		signedURL, err := genDownloadURL(fn.Spec.Body, time.Now().Add(60*time.Second))

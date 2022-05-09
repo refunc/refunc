@@ -6,9 +6,11 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"sync"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/refunc/refunc/pkg/logger"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/runtime/types"
 	"github.com/refunc/refunc/pkg/utils/logtools"
@@ -17,6 +19,7 @@ import (
 
 // APIVersion for current sidecard
 const APIVersion = "2018-06-01"
+const RefuncRoot = "/var/run/refunc"
 
 // Engine is car engine implemented by different transport to commnicate with its operator
 type Engine interface {
@@ -40,6 +43,8 @@ type Engine interface {
 	InvokeRequest() *messages.InvokeRequest
 	// SetResult teminates a reqeust corresponding to its reqeust id (rid)
 	SetResult(rid string, body []byte, err error, conentType string) error
+	// ForwardLog collect func's log for request
+	ForwardLog(endpoint string, bts []byte)
 }
 
 // Loader discovers and loads function runtime config
@@ -53,17 +58,21 @@ type Loader interface {
 type Sidecar struct {
 	eng    Engine
 	loader Loader
+	logger logger.Logger
 
 	fn *types.Function
+
+	logStreams sync.Map
 
 	cancel context.CancelFunc
 }
 
 // NewCar returns new sidecar from given engine and loader
-func NewCar(engine Engine, loader Loader) *Sidecar {
+func NewCar(engine Engine, loader Loader, logger logger.Logger) *Sidecar {
 	return &Sidecar{
 		eng:    engine,
 		loader: loader,
+		logger: logger,
 	}
 }
 

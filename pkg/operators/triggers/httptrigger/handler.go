@@ -107,7 +107,7 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 		}
 
 		// create request
-		rid := GetRequestID(req)
+		rid := getRequestID(req)
 		id := path.Join(t.fndKey, rid)
 
 		request := &messages.InvokeRequest{
