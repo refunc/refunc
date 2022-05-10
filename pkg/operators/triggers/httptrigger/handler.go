@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
 	"k8s.io/klog"
 
 	"github.com/gorilla/mux"
-	observer "github.com/refunc/go-observer"
 	"github.com/refunc/refunc/pkg/client"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/utils"
@@ -21,7 +19,6 @@ import (
 )
 
 var (
-	emptyProp     = observer.NewProperty(nil)
 	blockTickerCh = make(chan time.Time)
 )
 
@@ -48,7 +45,7 @@ func (t *httpHandler) setupHTTPEndpoints(router *mux.Router) {
 		streamingOff = false
 	)
 
-	// POST /ns.refunc-name
+	// POST /ns/refunc-name
 	// create a new invocation
 	router.HandleFunc(base, t.taskCreationHandler(streamingOff))
 
@@ -131,7 +128,7 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 		if trigger.Spec.HTTPTrigger != nil {
 			isWeb = trigger.Spec.HTTPTrigger.Web
 		}
-		t.taskPoller(ctx, rw, isWeb, taskr, blockTickerCh, false)()
+		t.taskPoller(ctx, rw, isWeb, taskr, blockTickerCh)()
 	}
 }
 
@@ -167,15 +164,8 @@ func (t *httpHandler) taskPoller(
 	web bool,
 	taskr client.TaskResolver,
 	tickerC <-chan time.Time,
-	fwdlog bool,
 ) func() bool {
-	var logsteam observer.Stream
-	if fwdlog {
-		logsteam = taskr.LogObserver()
-	}
-	if logsteam == nil {
-		logsteam = emptyProp.Observe()
-	}
+
 	write := t.flushWriter(rw, taskr.ID())
 
 	return func() bool {
@@ -187,21 +177,6 @@ func (t *httpHandler) taskPoller(
 		case <-tickerC:
 			// write ping
 			return write(messages.PingMsg)
-
-		case <-logsteam.Changes():
-			var lines []byte
-			for logsteam.HasNext() {
-				logline := logsteam.Next().(string)
-				if us, err := strconv.Unquote(`"` + logline + `"`); err == nil {
-					logline = us
-				}
-				lines = append(lines, messages.MustFromObject(&messages.Action{
-					Type:    messages.Log,
-					Payload: json.RawMessage(logline),
-				})...)
-				lines = append(lines, messages.TokenCRLF...)
-			}
-			return write(lines)
 
 		case <-taskr.Done():
 			bts, err := taskr.Result()

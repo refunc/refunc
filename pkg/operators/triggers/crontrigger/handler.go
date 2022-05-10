@@ -62,7 +62,7 @@ func (t *cronHandler) Next() (next time.Time, err error) {
 }
 
 const (
-	s3Prefix      = "_system/triggers/crontrigger"
+	s3Prefix      = "_system/crontriggers"
 	logsChunkSize = 4<<(10*2) + 512<<10 // 4.5 MB
 )
 
@@ -110,8 +110,8 @@ func (t *cronHandler) Run(tm time.Time) {
 			}
 			logNameSuffix++
 			return env.KeyWithinScope(filepath.Join(
-				s3Prefix,
 				t.ns,
+				s3Prefix,
 				t.name,
 				"logs",
 				fmt.Sprintf("%s%s.log", ts, suffix),
@@ -154,8 +154,8 @@ func (t *cronHandler) Run(tm time.Time) {
 				}
 				// write result
 				key := env.KeyWithinScope(filepath.Join(
-					s3Prefix,
 					t.ns,
+					s3Prefix,
 					t.name,
 					"results",
 					fmt.Sprintf("%s.json", ts),
