@@ -55,6 +55,10 @@ func (t *cronHandler) Next() (next time.Time, err error) {
 	// trigger is fired, or this is the first time to schedule
 	sched, err := cron.ParseStandard(trigger.Spec.Cron.Cron)
 	if err != nil {
+		// retry gocron default parser
+		sched, err = cron.Parse(trigger.Spec.Cron.Cron)
+	}
+	if err != nil {
 		return
 	}
 	t.next = sched.Next(now)
