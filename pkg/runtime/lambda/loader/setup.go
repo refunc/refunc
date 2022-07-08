@@ -50,20 +50,42 @@ func (ld *simpleLoader) loadFunc() (*types.Function, error) {
 		return nil, err
 	}
 
-	if _, err := os.Stat(filepath.Join(RefuncRoot, ".setup")); err != nil {
-		if err := ld.setup(fn); err != nil {
-			return nil, err
-		}
+	if err := ld.setup(fn); err != nil {
+		return nil, err
 	}
 
 	return fn, nil
 }
 
 func (ld *simpleLoader) setup(fn *types.Function) (err error) {
+	var filename string
+	if _, err = os.Stat(filepath.Join(RefuncRoot, ".setup")); err == nil {
+		// func's pod body container restart
+		bts, err := os.ReadFile(filepath.Join(RefuncRoot, ".setup"))
+		if err != nil {
+			return err
+		}
+		taskFiles, err := os.ReadDir(ld.taskRoot())
+		if err != nil {
+			return err
+		}
+		if len(taskFiles) > 0 {
+			return nil
+		}
+		klog.Infof("(loader) unpacking %s to %s", string(bts), ld.taskRoot())
+		err = archiver.Unarchive(string(bts), ld.taskRoot())
+		if err == nil && os.Geteuid() == 0 {
+			klog.Info("(loader) fix task folder's permission chown slicer:497")
+			return filepath.Walk(ld.taskRoot(), func(path string, f os.FileInfo, err error) error {
+				klog.V(4).Infof("(loader) chown for %q", path)
+				return os.Chown(path, 498, 497)
+			})
+		}
+		return err
+	}
+
 	// nolint:errcheck
 	withTmpFloder(func(folder string) {
-		// download
-		var filename string
 		switch {
 		case strings.HasPrefix(fn.Spec.Body, "http"): // http or https
 			filename, err = saveURL(fn.Spec.Body, folder)
@@ -78,6 +100,11 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 			}())
 		}
 		if err != nil {
+			return
+		}
+
+		// copy source code refunc root
+		if err = utils.CopyFile(filename, filepath.Join(RefuncRoot, filepath.Base(filename))); err != nil {
 			return
 		}
 
@@ -104,6 +131,7 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 	err = ioutil.WriteFile(cfgPath, messages.MustFromObject(fn), 0755)
 
 	if file, ferr := os.OpenFile(filepath.Join(RefuncRoot, ".setup"), os.O_RDWR|os.O_CREATE, 0755); ferr == nil {
+		_, err = file.WriteString(filepath.Join(RefuncRoot, filepath.Base(filename)))
 		// touch done
 		file.Close()
 	}
