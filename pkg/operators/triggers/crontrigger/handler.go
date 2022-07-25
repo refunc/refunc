@@ -156,6 +156,9 @@ func (t *cronHandler) Run(tm time.Time) {
 					klog.Errorf("(h) %s failed, %v", taskr.ID(), err)
 					bts = messages.GetErrActionBytes(err)
 				}
+				if !trigger.Spec.Cron.SaveResult {
+					return
+				}
 				// write result
 				key := env.KeyWithinScope(filepath.Join(
 					t.ns,
@@ -222,7 +225,11 @@ func (t *cronHandler) ensureTask(fndef *rfv1beta3.Funcdef, trigger *rfv1beta3.Tr
 		ctx := t.operator.ctx
 		ctx = client.WithLogger(ctx, klog.V(1))
 		ctx = client.WithTimeoutHint(ctx, timeout)
-		ctx = client.WithLoggingHint(ctx, true)
+		if trigger.Spec.Cron.SaveLog {
+			ctx = client.WithLoggingHint(ctx, true)
+		} else {
+			ctx = client.WithLoggingHint(ctx, false)
+		}
 		return client.NewTaskResolver(ctx, endpoint, request)
 	})
 }

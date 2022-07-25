@@ -75,6 +75,9 @@ type CronTrigger struct {
 	// $time: RFC3339 formated time
 	// $triggerName: name of trigger
 	Args json.RawMessage `json:"args,omitempty"`
+	// If enable will save func exec's log or result to s3.
+	SaveLog    bool `json:"saveLog"`
+	SaveResult bool `json:"saveResult"`
 }
 
 // HTTPTrigger is a funcinst that will react at HTTP requests
