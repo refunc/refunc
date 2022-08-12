@@ -3,8 +3,10 @@ package env
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	nats "github.com/nats-io/nats.go"
+	"k8s.io/klog"
 )
 
 // GlobalNatsURLString returns nats url derived from current env
@@ -35,7 +37,22 @@ func NewNatsConn(opts ...nats.Option) (natsConn *nats.Conn, err error) {
 		opts = append([]nats.Option{nats.UserInfo(GlobalAccessKey, GlobalSecretKey)}, opts...)
 	}
 
+	useOpts := []nats.Option{
+		// never give up reconnect nats
+		nats.MaxReconnects(-1),
+		nats.DisconnectErrHandler(func(c *nats.Conn, err error) {
+			klog.Errorf("nats %s disconnect, error %v", strings.Join(c.Servers(), ","), err)
+		}),
+		nats.ClosedHandler(func(c *nats.Conn) {
+			klog.Errorf("nats %s connect closed", strings.Join(c.Servers(), ","))
+		}),
+		nats.ReconnectHandler(func(c *nats.Conn) {
+			klog.Warningf("nats %s reconnect", strings.Join(c.Servers(), ","))
+		}),
+	}
+	useOpts = append(useOpts, opts...)
+
 	// connect to nats
-	natsConn, err = nats.Connect(GlobalNatsURLString(), opts...)
+	natsConn, err = nats.Connect(GlobalNatsURLString(), useOpts...)
 	return
 }
