@@ -2,6 +2,7 @@ package httptrigger
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -72,6 +73,7 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 			writeHTTPError(rw, http.StatusBadRequest, err.Error())
 			return
 		}
+
 		fndef, err := t.operator.ResolveFuncdef(trigger)
 		if err != nil {
 			if k8sutil.IsResourceNotFoundError(err) {
@@ -81,6 +83,7 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 			}
 			return
 		}
+
 		if fndef.Namespace != t.ns {
 			writeHTTPError(rw, http.StatusBadRequest, `h: invoke function in other namespace is not allowed`)
 			return
@@ -92,24 +95,18 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 		}
 
 		// parse http.request to event
-		eventFunc, err := t.operator.triggerPlugins.loadPluginEvent(t.fndKey)
+		event, err := formatRequestPayload(req)
 		if err != nil {
-			writeHTTPError(rw, http.StatusBadRequest, fmt.Sprintf("event error:%v", err))
-			return
-		}
-		args, err := eventFunc(req)
-		if err != nil {
-			writeHTTPError(rw, http.StatusBadRequest, fmt.Sprintf("event error:%v", err))
+			writeHTTPError(rw, http.StatusBadRequest, `request format to event fail`)
 			return
 		}
 
 		// create request
-		rid := getRequestID(req)
-		id := path.Join(t.fndKey, rid)
+		id := path.Join(t.fndKey, event.Context.RequestID)
 
 		request := &messages.InvokeRequest{
-			Args:      messages.MustFromObject(args),
-			RequestID: rid,
+			Args:      messages.MustFromObject(event),
+			RequestID: event.Context.RequestID,
 			Options: map[string]interface{}{
 				"method": strings.ToLower(req.Method),
 			},
@@ -124,11 +121,7 @@ func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWrit
 		}
 
 		ctx := req.Context()
-		isWeb := false
-		if trigger.Spec.HTTPTrigger != nil {
-			isWeb = trigger.Spec.HTTPTrigger.Web
-		}
-		t.taskPoller(ctx, rw, isWeb, taskr, blockTickerCh)()
+		t.taskPoller(ctx, rw, taskr, blockTickerCh)()
 	}
 }
 
@@ -161,7 +154,6 @@ func (t *httpHandler) flushWriter(rw http.ResponseWriter, idH string) func([]byt
 func (t *httpHandler) taskPoller(
 	ctx context.Context,
 	rw http.ResponseWriter,
-	web bool,
 	taskr client.TaskResolver,
 	tickerC <-chan time.Time,
 ) func() bool {
@@ -183,7 +175,7 @@ func (t *httpHandler) taskPoller(
 			if err != nil {
 				bts = messages.GetErrActionBytes(err)
 			}
-			if _, err := t.writeResult(rw, bts, !(err == nil), web); err != nil {
+			if _, err := t.writeResult(rw, bts, !(err == nil)); err != nil {
 				klog.Errorf("(h) %s failed to write result, %v", taskr.ID(), err)
 			}
 		}
@@ -191,7 +183,7 @@ func (t *httpHandler) taskPoller(
 	}
 }
 
-func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool, isWeb bool) (n int, err error) {
+func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool) (n int, err error) {
 	if isErr {
 		var msg messages.Action
 		err = json.Unmarshal(bts, &msg)
@@ -204,22 +196,27 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool
 		return rw.Write(bts)
 	}
 
-	if isWeb {
-		var rsp webMessage
-		err = json.Unmarshal(bts, &rsp)
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			return rw.Write(append([]byte(err.Error()), messages.TokenCRLF...))
-		}
-		// bts not is web message or raw is true fallback to json message
-		// https://github.com/golang/go/blob/master/src/net/http/server.go#L1098
-		if rsp.Raw || rsp.StatusCode < 100 || rsp.StatusCode > 999 {
-			rw.Header().Set("Content-Type", jsonCT)
-			return rw.Write(bts)
-		}
-		return t.writeWebResult(rw, rsp)
+	// https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html#urls-payloads
+	rsp, err := formatResponsePayload(bts)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return rw.Write(append([]byte(err.Error()), messages.TokenCRLF...))
 	}
 
-	rw.Header().Set("Content-Type", jsonCT)
-	return rw.Write(bts)
+	body := []byte(rsp.Body)
+	if rsp.IsBase64Encoded {
+		body, err = base64.StdEncoding.DecodeString(rsp.Body)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			return rw.Write([]byte(err.Error()))
+		}
+	}
+
+	rw.Header().Set("Content-Type", http.DetectContentType(body))
+	for k, v := range rsp.Headers {
+		rw.Header().Set(k, v)
+	}
+	rw.WriteHeader(rsp.StatusCode)
+
+	return rw.Write(body)
 }

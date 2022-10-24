@@ -43,8 +43,7 @@ type Operator struct {
 
 	ctx context.Context
 
-	triggers       sync.Map
-	triggerPlugins *TriggerPlugins
+	triggers sync.Map
 
 	liveTasks operators.LiveTaskStore
 
@@ -71,10 +70,9 @@ func NewOperator(
 	}
 
 	r := &Operator{
-		BaseOperator:   base,
-		ctx:            ctx,
-		triggerPlugins: NewTriggerPlugins(),
-		liveTasks:      operators.NewLiveTaskStore(),
+		BaseOperator: base,
+		ctx:          ctx,
+		liveTasks:    operators.NewLiveTaskStore(),
 	}
 
 	r.http.router = mmux.NewMutableRouter()
@@ -153,9 +151,6 @@ func (r *Operator) handleTriggerAdd(o interface{}) {
 	if !loaded {
 		klog.V(3).Infof("(httptrigger) add new trigger %s", key)
 		r.popluateEndpoints()
-		if trigger.Spec.HTTPTrigger != nil {
-			r.triggerPlugins.installPlugin(fndKey(trigger), trigger.Spec.HTTPTrigger.Plugin)
-		}
 	}
 }
 
@@ -164,11 +159,6 @@ func (r *Operator) handleTriggerUpdate(o interface{}) {
 	if trigger.Spec.Type != Type {
 		// skip other triggers
 		return
-	}
-	if trigger.Spec.HTTPTrigger != nil && trigger.Spec.HTTPTrigger.Plugin != "" {
-		r.triggerPlugins.reinstallPlugin(fndKey(trigger), trigger.Spec.HTTPTrigger.Plugin)
-	} else {
-		r.triggerPlugins.uninstallPlugin(fndKey(trigger))
 	}
 }
 
@@ -187,7 +177,6 @@ func (r *Operator) handleTriggerDelete(o interface{}) {
 	if _, ok := r.triggers.Load(key); ok {
 		klog.V(3).Infof("(httptrigger) delete trigger %s", key)
 		r.triggers.Delete(key)
-		r.triggerPlugins.uninstallPlugin(fndKey(trigger))
 		r.popluateEndpoints()
 	}
 }

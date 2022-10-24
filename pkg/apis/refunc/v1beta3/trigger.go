@@ -81,10 +81,19 @@ type CronTrigger struct {
 }
 
 // HTTPTrigger is a funcinst that will react at HTTP requests
+// https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html
 type HTTPTrigger struct {
-	ContentType string `json:"contentType"`
-	Web         bool   `json:"web"`
-	Plugin      string `json:"plugin"`
+	AuthType string          `json:"authType"`
+	Cors     HTTPTriggerCors `json:"cors"`
+}
+
+type HTTPTriggerCors struct {
+	AllowCredentials bool     `json:"allowCredentials"`
+	AllowHeaders     []string `json:"allowHeaders"`
+	AllowMethods     []string `json:"allowMethods"`
+	AllowOrigins     []string `json:"allowOrigins"`
+	ExposeHeaders    []string `json:"exposeHeaders"`
+	MaxAge           int      `json:"maxAge"`
 }
 
 // AsOwner returns *metav1.OwnerReference
