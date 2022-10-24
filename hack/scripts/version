@@ -9,8 +9,8 @@ fi
 COMMIT=$(git rev-parse --short HEAD)
 GIT_TAG=$(git tag -l --contains HEAD | head -n 1)
 
-if [[ -z "$DIRTY" && -n "$GIT_TAG" ]]; then
-    VERSION=$GIT_TAG
+if [[ -z "$DIRTY" && -n "$COMMIT" ]]; then
+    VERSION=$COMMIT
     export REFUNC_VERSION=${VERSION}
     export LOADER_VERSION=${VERSION}
     export SIDECAR_VERSION=${VERSION}
