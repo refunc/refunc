@@ -103,7 +103,7 @@ func GetSpecHash(fndef *rfv1beta3.Funcdef) string {
 	annotations := fn.Annotations
 	spec := fn.Spec
 	spec.Hash = ""
-	return getMD5Hash(map[string]interface{}{
+	return GetMD5Hash(map[string]interface{}{
 		"spec":        spec,
 		"annotations": annotations,
 	})
@@ -210,9 +210,12 @@ func getObject(obj interface{}) (metav1.Object, bool) {
 	return o, true
 }
 
-func getMD5Hash(object interface{}) string {
+func GetMD5Hash(object interface{}) string {
 	md5Ctx := md5.New()
-	data, _ := json.Marshal(object)
+	data, err := json.Marshal(object)
+	if err != nil {
+		klog.Error(err)
+	}
 	md5Ctx.Write(data)
 	return hex.EncodeToString(md5Ctx.Sum(nil))
 }

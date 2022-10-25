@@ -200,8 +200,8 @@ func startCmd() *cobra.Command {
 				}
 
 				r.CORS.AllowedOrigins = []string{"*"}
-				r.CORS.AllowedMethods = []string{"*"}
-				r.CORS.AllowedHeaders = []string{"*"}
+				r.CORS.AllowedMethods = []string{"GET", "HEAD", "POST"}
+				r.CORS.AllowedHeaders = []string{"Accept", "Accept-Language", "Content-Language", "Origin"}
 				r.CORS.AllowCredentials = true
 
 				return r

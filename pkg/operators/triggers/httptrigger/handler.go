@@ -12,6 +12,8 @@ import (
 
 	"k8s.io/klog"
 
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/refunc/refunc/pkg/client"
 	"github.com/refunc/refunc/pkg/messages"
@@ -31,6 +33,7 @@ type httpHandler struct {
 	fndKey string
 	ns     string
 	name   string
+	hash   string
 
 	operator *Operator
 }
@@ -46,17 +49,55 @@ func (t *httpHandler) setupHTTPEndpoints(router *mux.Router) {
 		streamingOff = false
 	)
 
-	// POST /ns/refunc-name
-	// create a new invocation
-	router.HandleFunc(base, t.taskCreationHandler(streamingOff))
+	trigger, err := t.operator.TriggerLister.Triggers(t.ns).Get(t.name)
+	if err != nil {
+		klog.Errorf("(h) %s trigger not found", t.fndKey)
+		return
+	}
 
-	// POST /ns/refunc-name/
-	// create a new task
-	sr.HandleFunc("/", t.taskCreationHandler(streamingOff))
+	// Methods /ns/refunc-name
+	sr.HandleFunc("", t.taskCreationHandler(streamingOff))
+	// Methods /ns/refunc-name/*
+	sr.PathPrefix("/").HandlerFunc(t.taskCreationHandler(streamingOff))
 
 	// GET /ns/refunc-name/_meta
 	// query metadata of the refunc
 	sr.HandleFunc("/_meta", t.handleMeta).Methods(http.MethodGet)
+
+	// setup http.Handler configs
+	if trigger.Spec.HTTPTrigger == nil {
+		if len(t.operator.corsOpts) > 0 {
+			sr.Use(handlers.CORS(t.operator.corsOpts...))
+		}
+		return
+	}
+
+	// config cors
+	var corsOpts []handlers.CORSOption
+	CORS := trigger.Spec.HTTPTrigger.Cors
+	if CORS.AllowCredentials {
+		corsOpts = append(corsOpts, handlers.AllowCredentials())
+	}
+	if CORS.MaxAge > 0 {
+		corsOpts = append(corsOpts, handlers.MaxAge(CORS.MaxAge))
+	}
+	if len(CORS.AllowOrigins) > 0 {
+		corsOpts = append(corsOpts, handlers.AllowedOrigins(CORS.AllowOrigins))
+	}
+	if len(CORS.AllowMethods) > 0 {
+		corsOpts = append(corsOpts, handlers.AllowedMethods(CORS.AllowMethods))
+	}
+	if len(CORS.AllowHeaders) > 0 {
+		corsOpts = append(corsOpts, handlers.AllowedHeaders(CORS.AllowHeaders))
+	}
+	if len(CORS.ExposeHeaders) > 0 {
+		corsOpts = append(corsOpts, handlers.ExposedHeaders(CORS.ExposeHeaders))
+	}
+	if len(corsOpts) > 0 {
+		sr.Use(handlers.CORS(corsOpts...))
+	} else if len(t.operator.corsOpts) > 0 {
+		sr.Use(handlers.CORS(t.operator.corsOpts...))
+	}
 }
 
 func (t *httpHandler) taskCreationHandler(streaming bool) func(http.ResponseWriter, *http.Request) {
@@ -212,7 +253,7 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool
 		}
 	}
 
-	rw.Header().Set("Content-Type", http.DetectContentType(body))
+	rw.Header().Set("Content-Type", mimetype.Detect(body).String())
 	for k, v := range rsp.Headers {
 		rw.Header().Set(k, v)
 	}

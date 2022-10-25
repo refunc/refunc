@@ -24,6 +24,7 @@ import (
 	"github.com/refunc/refunc/pkg/operators/triggers/httptrigger/mmux"
 	"github.com/refunc/refunc/pkg/utils"
 	"github.com/refunc/refunc/pkg/utils/logtools"
+	"github.com/refunc/refunc/pkg/utils/rfutil"
 )
 
 // Operator creates http based http trigger automatically for every funcs
@@ -40,6 +41,7 @@ type Operator struct {
 		MaxAge           int
 		AllowCredentials bool
 	}
+	corsOpts []handlers.CORSOption
 
 	ctx context.Context
 
@@ -146,6 +148,7 @@ func (r *Operator) handleTriggerAdd(o interface{}) {
 		fndKey:   trigger.Namespace + "/" + trigger.Spec.FuncName,
 		ns:       trigger.Namespace,
 		name:     trigger.Name,
+		hash:     rfutil.GetMD5Hash(trigger.Spec.HTTPTrigger),
 		operator: r,
 	})
 	if !loaded {
@@ -160,6 +163,24 @@ func (r *Operator) handleTriggerUpdate(o interface{}) {
 		// skip other triggers
 		return
 	}
+	key := k8sKey(trigger)
+	c, loaded := r.triggers.Load(key)
+	if loaded {
+		currentHandler := c.(*httpHandler)
+		if currentHandler.hash != rfutil.GetMD5Hash(trigger.Spec.HTTPTrigger) {
+			r.triggers.Store(key, &httpHandler{
+				fndKey:   fndKey(trigger),
+				ns:       trigger.Namespace,
+				name:     trigger.Name,
+				hash:     rfutil.GetMD5Hash(trigger.Spec.HTTPTrigger),
+				operator: r,
+			})
+			klog.V(3).Infof("(httptrigger) update trigger %s", key)
+			r.popluateEndpoints()
+		}
+		return
+	}
+	r.handleTriggerAdd(o)
 }
 
 func (r *Operator) handleTriggerDelete(o interface{}) {
@@ -231,8 +252,8 @@ func (r *Operator) listenAndServe() {
 		corsOpts = append(corsOpts, handlers.ExposedHeaders(r.CORS.ExposedHeaders))
 	}
 	if len(corsOpts) > 0 {
-		klog.Infof("(httptrigger) CORS enabled, %v", r.CORS)
-		handler = handlers.CORS(corsOpts...)(handler)
+		klog.Infof("(httptrigger) default CORS enabled, %v", r.CORS)
+		r.corsOpts = corsOpts
 	}
 
 	// logging
