@@ -1,6 +1,7 @@
 package natsbased
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"sync"
@@ -19,7 +20,17 @@ type carproider struct {
 func (*carproider) Name() string { return "nats" }
 
 func (*carproider) GetTransportContainer(tpl *rfv1beta3.Xenv) *corev1.Container {
+	var extraCfg struct {
+		Sidecar struct {
+			Command []string `json:"command,omitempty"`
+		} `json:"sidecar,omitempty"`
+	}
+	json.Unmarshal(tpl.Spec.Extra, &extraCfg) // nolint:errcheck
+
 	container := defaultCarContainer.DeepCopy()
+	if len(extraCfg.Sidecar.Command) > 0 {
+		container.Command = extraCfg.Sidecar.Command
+	}
 	return container
 }
 
