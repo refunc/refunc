@@ -19,15 +19,17 @@ import (
 )
 
 var config struct {
-	Addr       string
-	RefuncRoot string
-	Logger     string
+	Addr         string
+	RefuncRoot   string
+	Logger       string
+	LoggerConfig string
 }
 
 func init() {
 	pflag.StringVarP(&config.Addr, "listen", "l", "127.0.0.1:80", "The listen address")
 	pflag.StringVar(&config.RefuncRoot, "refunc-root", loader.RefuncRoot, "The root of layers folder")
 	pflag.StringVar(&config.Logger, "logger", "stdout", "The logger of func logging")
+	pflag.StringVar(&config.LoggerConfig, "logger-config", "", "The logger config of func logging")
 }
 
 func main() {
@@ -51,7 +53,7 @@ func main() {
 		klog.Exitf("Failed to creats loader, %v", err)
 	}
 
-	logger, err := logger.CreateLogger(ctx, config.Logger)
+	logger, err := logger.CreateLogger(ctx, config.Logger, config.LoggerConfig)
 	if err != nil {
 		klog.Exitf("Failed to create logger, %v", err)
 	}
