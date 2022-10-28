@@ -110,8 +110,9 @@ func (ld *simpleLoader) exec(fn *types.Function) error {
 		wg.Add(1)
 		go func(wid int, c *exec.Cmd) {
 			klog.Infof("(loader) worker #%d exec %s", wid, strings.Join(c.Args, " "))
-			// TODO capture cmd errors
-			c.Run()
+			if err := c.Run(); err != nil {
+				klog.Errorf("(loader) worker #%d exec %s error %v", wid, strings.Join(c.Args, " "), err)
+			}
 			wg.Done()
 		}(i, cmd)
 	}
