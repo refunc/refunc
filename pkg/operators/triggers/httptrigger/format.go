@@ -58,11 +58,18 @@ func formatRequestPayload(req *http.Request) (RequestPayload, error) {
 		headers[k] = strings.Join(v, ",")
 	}
 
+	cookies := []string{}
+	for _, cookie := range req.Header["Cookie"] {
+		for _, v := range strings.Split(cookie, ";") {
+			cookies = append(cookies, strings.TrimSpace(v))
+		}
+	}
+
 	payload := RequestPayload{
 		Version:               "2.0",
 		RawPath:               req.URL.EscapedPath(),
 		RawQueryString:        req.URL.RawQuery,
-		Cookies:               req.Header["Cookie"],
+		Cookies:               cookies,
 		Headers:               headers,
 		QueryStringParameters: queryStringParameters,
 		PathParameters:        map[string]string{},

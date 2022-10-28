@@ -257,6 +257,11 @@ func (t *httpHandler) writeResult(rw http.ResponseWriter, bts []byte, isErr bool
 	for k, v := range rsp.Headers {
 		rw.Header().Set(k, v)
 	}
+
+	for _, cookie := range rsp.Cookies {
+		rw.Header().Add("Set-Cookie", cookie)
+	}
+
 	rw.WriteHeader(rsp.StatusCode)
 
 	return rw.Write(body)
