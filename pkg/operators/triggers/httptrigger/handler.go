@@ -65,7 +65,7 @@ func (t *httpHandler) setupHTTPEndpoints(router *mux.Router) {
 	sr.HandleFunc("/_meta", t.handleMeta).Methods(http.MethodGet)
 
 	// setup http.Handler configs
-	if trigger.Spec.HTTPTrigger == nil {
+	if trigger.Spec.HTTP == nil {
 		if len(t.operator.corsOpts) > 0 {
 			sr.Use(handlers.CORS(t.operator.corsOpts...))
 		}
@@ -74,7 +74,7 @@ func (t *httpHandler) setupHTTPEndpoints(router *mux.Router) {
 
 	// config cors
 	var corsOpts []handlers.CORSOption
-	CORS := trigger.Spec.HTTPTrigger.Cors
+	CORS := trigger.Spec.HTTP.Cors
 	if CORS.AllowCredentials {
 		corsOpts = append(corsOpts, handlers.AllowCredentials())
 	}

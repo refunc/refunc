@@ -452,8 +452,8 @@ func (in *TriggerConfig) DeepCopyInto(out *TriggerConfig) {
 		*out = new(CronTrigger)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.HTTPTrigger != nil {
-		in, out := &in.HTTPTrigger, &out.HTTPTrigger
+	if in.HTTP != nil {
+		in, out := &in.HTTP, &out.HTTP
 		*out = new(HTTPTrigger)
 		(*in).DeepCopyInto(*out)
 	}

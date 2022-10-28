@@ -54,9 +54,9 @@ type TriggerSpec struct {
 
 // TriggerConfig is configuraion for a specific trigger
 type TriggerConfig struct {
-	Event       *EventTrigger `json:"event,omitempty"`
-	Cron        *CronTrigger  `json:"cron,omitempty"`
-	HTTPTrigger *HTTPTrigger  `json:"http,omitempty"`
+	Event *EventTrigger `json:"event,omitempty"`
+	Cron  *CronTrigger  `json:"cron,omitempty"`
+	HTTP  *HTTPTrigger  `json:"http,omitempty"`
 }
 
 // EventTrigger is a basic trigger for a funcdef

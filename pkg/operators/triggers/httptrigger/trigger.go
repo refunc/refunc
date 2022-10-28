@@ -148,7 +148,7 @@ func (r *Operator) handleTriggerAdd(o interface{}) {
 		fndKey:   trigger.Namespace + "/" + trigger.Spec.FuncName,
 		ns:       trigger.Namespace,
 		name:     trigger.Name,
-		hash:     rfutil.GetMD5Hash(trigger.Spec.HTTPTrigger),
+		hash:     rfutil.GetMD5Hash(trigger.Spec.HTTP),
 		operator: r,
 	})
 	if !loaded {
@@ -167,12 +167,12 @@ func (r *Operator) handleTriggerUpdate(o interface{}) {
 	c, loaded := r.triggers.Load(key)
 	if loaded {
 		currentHandler := c.(*httpHandler)
-		if currentHandler.hash != rfutil.GetMD5Hash(trigger.Spec.HTTPTrigger) {
+		if currentHandler.hash != rfutil.GetMD5Hash(trigger.Spec.HTTP) {
 			r.triggers.Store(key, &httpHandler{
 				fndKey:   fndKey(trigger),
 				ns:       trigger.Namespace,
 				name:     trigger.Name,
-				hash:     rfutil.GetMD5Hash(trigger.Spec.HTTPTrigger),
+				hash:     rfutil.GetMD5Hash(trigger.Spec.HTTP),
 				operator: r,
 			})
 			klog.V(3).Infof("(httptrigger) update trigger %s", key)
