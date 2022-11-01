@@ -57,6 +57,7 @@ func formatRequestPayload(req *http.Request) (RequestPayload, error) {
 	for k, v := range req.Header {
 		headers[k] = strings.Join(v, ",")
 	}
+	headers["Host"] = req.Host
 
 	cookies := []string{}
 	for _, cookie := range req.Header["Cookie"] {
