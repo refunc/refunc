@@ -118,7 +118,7 @@ func (ld *simpleLoader) exec(fn *types.Function) error {
 	}
 	wg.Wait()
 
-	return nil
+	return errors.New("(loader) all workers exit")
 }
 
 func (ld *simpleLoader) wait(addr string) (*types.Function, error) {

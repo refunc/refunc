@@ -62,4 +62,6 @@ func main() {
 	if err != nil {
 		klog.Error(err)
 	}
+	// prevent workers init error and pod crash immediately.
+	<-ctx.Done()
 }
