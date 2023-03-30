@@ -147,7 +147,7 @@ func (ld *simpleLoader) prepare(fn *types.Function) (*exec.Cmd, error) {
 	// redirect func's stdout/stderr log
 	var stdout io.Writer = os.Stderr
 	if apiAddr != "" {
-		if stream, err := withLogStream(wid, apiAddr, state); err != nil {
+		if stream, err := withLogStream(wid, state); err != nil {
 			klog.Errorf("(loader) redirect stdout/stderr log faild %v", err)
 		} else {
 			stdout = stream
@@ -415,20 +415,14 @@ func (s *logStreamWriter) Write(bts []byte) (int, error) {
 	return len(bts), nil
 }
 
-func withLogStream(wid string, apiAddr string, state *sync.Map) (io.Writer, error) {
-	res, err := http.Get(fmt.Sprintf("http://%s/2018-06-01/%s/log", apiAddr, wid))
-	if err != nil {
+func withLogStream(wid string, state *sync.Map) (io.Writer, error) {
+	pipeFile := fmt.Sprintf("%s/%s.log.pipe", RefuncRoot, wid)
+	if err := syscall.Mkfifo(pipeFile, 0666); err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil || string(body) == "error" {
-		return nil, errors.New("loader: failed to reqeust log api")
-	}
-	// open named pipe
-	fd, err := os.OpenFile(string(body), os.O_RDWR, fs.ModeNamedPipe)
+	fd, err := os.OpenFile(pipeFile, os.O_RDWR, fs.ModeNamedPipe)
 	if err != nil {
-		return nil, fmt.Errorf("loader: failed to open named pipe %s", string(body))
+		return nil, fmt.Errorf("loader: failed to open named pipe %s", pipeFile)
 	}
 	return &logStreamWriter{
 		fd:    fd,

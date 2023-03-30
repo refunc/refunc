@@ -1,19 +1,11 @@
 package sidecar
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/binary"
 	"encoding/json"
-	"fmt"
-	"io"
-	"io/fs"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"reflect"
 	"strconv"
-	"syscall"
 	"time"
 
 	"k8s.io/klog"
@@ -27,7 +19,6 @@ import (
 func (sc *Sidecar) reigsterHandlers(router *mux.Router) {
 	apirouter := router.PathPrefix("/" + APIVersion).Subrouter()
 	apirouter.Path("/ping").HandlerFunc(sc.handlePing).Methods(http.MethodGet)
-	apirouter.Path("/{wid}/log").HandlerFunc(sc.handleLog).Methods(http.MethodGet)
 
 	runtimerouter := apirouter.PathPrefix("/runtime").Subrouter()
 	runtimerouter.Path("/invocation/next").HandlerFunc(sc.handleInvocationNext).Methods(http.MethodGet)
@@ -38,76 +29,6 @@ func (sc *Sidecar) reigsterHandlers(router *mux.Router) {
 
 func (sc *Sidecar) handlePing(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("pong")) //nolint:errcheck
-}
-
-func (sc *Sidecar) handleLog(w http.ResponseWriter, r *http.Request) {
-	wid := mux.Vars(r)["wid"]
-
-	pipeFile := fmt.Sprintf("%s/%s.log.pipe", RefuncRoot, wid)
-	if err := syscall.Mkfifo(pipeFile, 0666); err != nil {
-		w.Write([]byte("error"))
-		return
-	}
-
-	fd, err := os.OpenFile(pipeFile, os.O_RDWR, fs.ModeNamedPipe)
-	if err != nil {
-		w.Write([]byte("error"))
-		return
-	}
-
-	sc.logStreams.Store(wid, fd)
-	go sc.tailLog(wid, fd)
-
-	w.Write([]byte(pipeFile))
-}
-
-var LogFrameDelimer = []byte{165, 90, 0, 1} //0xA55A0001
-
-func (sc *Sidecar) tailLog(wid string, fd io.Reader) {
-	logEndpoint := fmt.Sprintf("%s.%s", sc.fn.Spec.Runtime.Envs["REFUNC_LOG_ENDPOINT"], wid)
-
-	klog.Infof("(car) tail log stream %s", wid)
-
-	defer sc.logStreams.Delete(wid)
-
-	decodeLog := func(data []byte) (string, []byte) {
-		var offset uint32 = 0
-		var offlen uint32 = 4
-		endpointLen := binary.BigEndian.Uint32(data[offset : offset+offlen])
-		endpoint := string(data[offset+offlen : offset+offlen+endpointLen])
-
-		offset = offset + offlen + endpointLen
-		payloadLen := binary.BigEndian.Uint32(data[offset : offset+offlen])
-		payload := data[offset+offlen : offset+offlen+payloadLen]
-		return endpoint, payload
-	}
-
-	scanner := bufio.NewScanner(fd)
-	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if i := bytes.Index(data, LogFrameDelimer); i >= 0 {
-			if len(data[:i]) == 0 {
-				return i + len(LogFrameDelimer), nil, nil
-			}
-			return i + len(LogFrameDelimer), data[:i], nil
-		}
-		if atEOF {
-			return 0, data, bufio.ErrFinalToken
-		}
-		return 0, nil, nil
-	})
-
-	for scanner.Scan() {
-		bts := scanner.Bytes()
-		forward, msg := decodeLog(bts)
-		if forward != "" {
-			sc.eng.ForwardLog(forward, msg)
-		}
-		sc.logger.WriteLog(logEndpoint, msg)
-	}
-	if err := scanner.Err(); err != nil {
-		klog.Errorf("(car) tail log read faild %s %v", wid, err)
-	}
-
 }
 
 func (sc *Sidecar) handleInvocationNext(w http.ResponseWriter, r *http.Request) {

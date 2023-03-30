@@ -146,6 +146,8 @@ func (sc *Sidecar) start(ctx context.Context, factory serverFactor) {
 		}
 	}()
 
+	go sc.watchLogs()
+
 	sc.eng.ReportReady()
 
 	<-ctx.Done()

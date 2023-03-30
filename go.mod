@@ -3,7 +3,7 @@ module github.com/refunc/refunc
 go 1.18
 
 require (
-	github.com/Arvintian/loki-client-go v0.0.2
+	github.com/Arvintian/loki-client-go v0.0.0-20221027031849-74ecb6142662
 	github.com/allegro/bigcache v1.2.1
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gabriel-vasile/mimetype v1.4.1

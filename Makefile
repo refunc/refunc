@@ -37,7 +37,6 @@ bin/$(GOOS)/%:
 	CGO_ENABLED=0 go build \
 	-tags netgo -installsuffix netgo \
 	-ldflags "-s -w $(LD_FLAGS)" \
-	-a \
 	-o $@ \
 	./cmd/$*/
 

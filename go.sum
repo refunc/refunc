@@ -22,8 +22,8 @@ cloud.google.com/go/storage v1.0.0/go.mod h1:IhtSnM/ZTZV8YYJWCY8RULGVqBDmpoyjwiy
 cloud.google.com/go/storage v1.5.0/go.mod h1:tpKbwo567HUNpVclU5sGELwQWBDZ8gh0ZeosJ0Rtdos=
 cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohlUTyfDhBk=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-github.com/Arvintian/loki-client-go v0.0.2 h1:TuqMSrcgh61Z3CYCe6KAzkz/UL/EMSiTVjbqefl2F8w=
-github.com/Arvintian/loki-client-go v0.0.2/go.mod h1:AKHKE0gf7jeQEpxSIxoQtj19IkxdLRrpCXdb/L2hduw=
+github.com/Arvintian/loki-client-go v0.0.0-20221027031849-74ecb6142662 h1:mjIprPjqROjx7+Te3vRZYt6kY1jLQ+wVOWem0BSYCdQ=
+github.com/Arvintian/loki-client-go v0.0.0-20221027031849-74ecb6142662/go.mod h1:AKHKE0gf7jeQEpxSIxoQtj19IkxdLRrpCXdb/L2hduw=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78/go.mod h1:LmzpDX56iTiv29bbRTIsUNlaFfuhWRQBWjQdVyAevI8=
 github.com/Azure/go-autorest v14.2.0+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSWATqVooLgysK6ZNox3g/xq24=
 github.com/Azure/go-autorest/autorest v0.11.1/go.mod h1:JFgpikqFJ/MleTTxwepExTKnFUKKszPS8UavbQYUMuw=
