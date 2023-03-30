@@ -32,7 +32,8 @@ type engine struct {
 	cancel context.CancelFunc
 
 	// track tasks by request id
-	sessions sync.Map
+	sessions  sync.Map
+	initError error
 
 	conn *nats.Conn
 }
@@ -113,6 +114,11 @@ func (eng *engine) Init(ctx context.Context, fn *types.Function) error {
 		err := json.Unmarshal(msg.Data, &req)
 		if err != nil {
 			eng.replyError(msgReply, err)
+			return
+		}
+
+		if eng.initError != nil {
+			eng.replyError(msgReply, eng.initError)
 			return
 		}
 
@@ -252,6 +258,7 @@ func (eng *engine) ForwardLog(endpoint string, bts []byte) {
 }
 
 func (eng *engine) ReportInitError(err error) {
+	eng.initError = err
 	klog.Infof("(natscar) ReportInitError: %v", err)
 }
 
