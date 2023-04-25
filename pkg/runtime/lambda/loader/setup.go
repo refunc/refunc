@@ -310,6 +310,9 @@ type proxyTransport struct {
 
 func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	rsp, err := http.DefaultTransport.RoundTrip(req)
+	if err != nil {
+		return rsp, err
+	}
 	logEndpoint := rsp.Header.Get("Lambda-Runtime-Forward-Log-Endpoint")
 	if logEndpoint != "" { //next request
 		t.state.Store("logEndpoint", logEndpoint)

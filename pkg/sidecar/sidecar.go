@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/refunc/refunc/pkg/loader"
 	"github.com/refunc/refunc/pkg/logger"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/runtime/types"
@@ -19,7 +20,10 @@ import (
 
 // APIVersion for current sidecard
 const APIVersion = "2018-06-01"
-const RefuncRoot = "/var/run/refunc"
+
+var (
+	RefuncRoot = "/var/run/refunc"
+)
 
 // Engine is car engine implemented by different transport to commnicate with its operator
 type Engine interface {
@@ -47,17 +51,11 @@ type Engine interface {
 	ForwardLog(endpoint string, bts []byte)
 }
 
-// Loader discovers and loads function runtime config
-type Loader interface {
-	C() <-chan struct{}
-	Function() *types.Function
-}
-
 // Sidecar creates a proxy that implements aws lambda runtimes-api
 // https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html
 type Sidecar struct {
 	eng    Engine
-	loader Loader
+	loader loader.Loader
 	logger logger.Logger
 
 	fn *types.Function
@@ -68,7 +66,7 @@ type Sidecar struct {
 }
 
 // NewCar returns new sidecar from given engine and loader
-func NewCar(engine Engine, loader Loader, logger logger.Logger) *Sidecar {
+func NewCar(engine Engine, loader loader.Loader, logger logger.Logger) *Sidecar {
 	return &Sidecar{
 		eng:    engine,
 		loader: loader,

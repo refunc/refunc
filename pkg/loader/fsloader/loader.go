@@ -11,8 +11,8 @@ import (
 	"k8s.io/klog"
 
 	"github.com/fsnotify/fsnotify"
+	fnloader "github.com/refunc/refunc/pkg/loader"
 	"github.com/refunc/refunc/pkg/runtime/types"
-	"github.com/refunc/refunc/pkg/sidecar"
 )
 
 const (
@@ -37,10 +37,6 @@ func (l *loader) Function() *types.Function {
 }
 
 func (l *loader) loadConfig() (ok bool) {
-	// TODO issue token for funcinst
-	// defer func() {
-	// 	os.Remove(l.file)
-	// }()
 	if _, err := os.Stat(l.file); os.IsNotExist(err) {
 		return
 	}
@@ -61,7 +57,7 @@ func (l *loader) loadConfig() (ok bool) {
 }
 
 // NewLoader creates a loader, watches given folder, and load refunc.yaml if any
-func NewLoader(ctx context.Context, folder string) (sidecar.Loader, error) {
+func NewLoader(ctx context.Context, folder string) (fnloader.Loader, error) {
 	l := new(loader)
 	if folder == "" {
 		folder = DefaultPath

@@ -1,8 +1,9 @@
-package loader
+package httploader
 
 import (
 	"io"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -44,3 +45,9 @@ func init() {
 	klogWriter.current = ioutil.Discard
 	klog.SetOutputBySeverity("INFO", klogWriter)
 }
+
+type noOpRspWriter struct{}
+
+func (noOpRspWriter) Header() http.Header       { return make(http.Header) }
+func (noOpRspWriter) Write([]byte) (int, error) { return 0, nil }
+func (noOpRspWriter) WriteHeader(int)           {}

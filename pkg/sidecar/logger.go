@@ -54,7 +54,7 @@ WATCH_LOOP:
 			if !ok {
 				goto WATCH_LOOP
 			}
-			if (event.Op == fsnotify.Create || event.Op == fsnotify.Write) || strings.HasSuffix(event.Name, LogStreamSuffix) {
+			if (event.Op == fsnotify.Create || event.Op == fsnotify.Write) && strings.HasSuffix(event.Name, LogStreamSuffix) {
 				wid := strings.TrimPrefix(strings.TrimSuffix(event.Name, LogStreamSuffix), fmt.Sprintf("%s/", RefuncRoot))
 				if _, ok := sc.logStreams.Load(wid); ok {
 					continue

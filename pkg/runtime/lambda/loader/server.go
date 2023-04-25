@@ -1,11 +1,8 @@
 package loader
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -15,16 +12,13 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/refunc/refunc/pkg/messages"
+	"github.com/refunc/refunc/pkg/loader/fsloader"
 	"github.com/refunc/refunc/pkg/runtime/types"
-	"github.com/refunc/refunc/pkg/utils/logtools"
 )
 
 // Loader listens to address to load res and handles the bootstrap of a func
 type Loader interface {
-	Start(ctx context.Context, addr string) error
+	Start(ctx context.Context) error
 }
 
 // NewSimpleLoader creates a new simple loader,
@@ -60,12 +54,12 @@ var (
 	DefaultLayersRoot  = "/opt"
 )
 
-func (ld *simpleLoader) Start(ctx context.Context, addr string) error {
+func (ld *simpleLoader) Start(ctx context.Context) error {
 	ld.ctx = ctx
 	fn, err := ld.loadFunc()
 	if err != nil {
 		klog.Infof("(loader) cannot load function, %v", err)
-		if fn, err = ld.wait(addr); err != nil {
+		if fn, err = ld.wait(ctx, RefuncRoot); err != nil {
 			return err
 		}
 	}
@@ -121,95 +115,18 @@ func (ld *simpleLoader) exec(fn *types.Function) error {
 	return errors.New("(loader) all workers exit")
 }
 
-func (ld *simpleLoader) wait(addr string) (*types.Function, error) {
-	router := mux.NewRouter()
-
-	fnC := make(chan *types.Function)
-	defer close(fnC)
-	errC := make(chan error)
-	defer close(errC)
-
-	writeError := func(w http.ResponseWriter, code int, err error, msg string) {
-		w.WriteHeader(code)
-		errMsg := messages.GetErrorMessage(err)
-		if msg != "" {
-			// override message
-			errMsg.Message = msg
-		}
-		w.Write(messages.MustFromObject(errMsg)) //nolint:errcheck
-		w.(http.Flusher).Flush()
-		// shutdown do not try anymore
-		if code >= 500 {
-			select {
-			case errC <- err:
-			default: // void closed panic
-			}
-		}
-	}
-
-	var initOnce sync.Once
-	router.Path("/init").Methods(http.MethodPost).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		initOnce.Do(func() {
-			var fn types.Function
-			if err := json.NewDecoder(r.Body).Decode(&fn); err != nil {
-				writeError(w, http.StatusBadRequest, err, "")
-				return
-			}
-
-			// capture logs
-			buf, err := func() ([]byte, error) {
-				buf := bytes.NewBuffer(nil)
-				klogWriter.Switch(buf)
-				defer klog.Flush()
-				defer klogWriter.Switch(nil)
-				return buf.Bytes(), ld.setup(&fn)
-			}()
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, err, fmt.Sprintf("loader: %v\r\n%s", err, string(buf)))
-				w.(http.Flusher).Flush()
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-			w.Write(buf)                //nolint:errcheck
-			w.Write(messages.TokenCRLF) //nolint:errcheck
-
-			fnC <- &fn
-			w.(http.Flusher).Flush()
-			w = noOpRspWriter{}
-		})
-
-		w.WriteHeader(http.StatusOK)
-	})
-
-	// setup server
-	handler := handlers.LoggingHandler(logtools.GlogWriter(2), router)
-	server := &http.Server{
-		Addr:    addr,
-		Handler: handler,
-	}
-	defer func() {
-		go server.Shutdown(context.Background()) //nolint:errcheck
-	}()
-
-	// kickoff and serve
-	go func() {
-		klog.Infof("(loader) starting server at %s, waiting for requests", server.Addr)
-		if err := server.ListenAndServe(); checkServerErr(err) != nil {
-			klog.Errorf("(loader) http exited with error, %v", err)
-			return
-		}
-		klog.Info("(loader) server exited")
-	}()
-
-	select {
-	case <-ld.ctx.Done():
-		return nil, ld.ctx.Err()
-	case fn := <-fnC:
-		return fn, nil
-	case err := <-errC:
+func (ld *simpleLoader) wait(ctx context.Context, folder string) (*types.Function, error) {
+	fnld, err := fsloader.NewLoader(ctx, folder)
+	if err != nil {
 		return nil, err
 	}
+	<-fnld.C()
+	fn := fnld.Function()
+	if fn == nil {
+		return nil, errors.New("(loader) wait funcdef error")
+	}
+	ld.setup(fn)
+	return fn, nil
 }
 
 func (ld *simpleLoader) mainExe() string {
@@ -239,9 +156,3 @@ func (ld *simpleLoader) layersRoot() string {
 	}
 	return DefaultLayersRoot
 }
-
-type noOpRspWriter struct{}
-
-func (noOpRspWriter) Header() http.Header       { return make(http.Header) }
-func (noOpRspWriter) Write([]byte) (int, error) { return 0, nil }
-func (noOpRspWriter) WriteHeader(int)           {}

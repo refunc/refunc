@@ -16,17 +16,13 @@ import (
 )
 
 var config struct {
-	Addr string
-
 	TaskRoot    string
 	RuntimeRoot string
 	LayersRoot  string
-
-	RefuncRoot string
+	RefuncRoot  string
 }
 
 func init() {
-	pflag.StringVarP(&config.Addr, "listen", "l", ":7788", "The listen address")
 	pflag.StringVar(&config.TaskRoot, "task-root", loader.DefaultTaskRoot, "The root of task folder")
 	pflag.StringVar(&config.RuntimeRoot, "runtime-root", loader.DefaultRuntimeRoot, "The root of runtime folder")
 	pflag.StringVar(&config.LayersRoot, "layers-root", loader.DefaultLayersRoot, "The root of layers folder")
@@ -58,7 +54,7 @@ func main() {
 		cancel()
 	}()
 
-	err := ld.Start(ctx, config.Addr)
+	err := ld.Start(ctx)
 	if err != nil {
 		klog.Error(err)
 	}
