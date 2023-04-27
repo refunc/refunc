@@ -98,7 +98,7 @@ roleRef:
 
 ---
 
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: funcdeves.k8s.refunc.io
@@ -116,7 +116,7 @@ spec:
 
 ---
 
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: funcinsts.k8s.refunc.io
@@ -134,7 +134,7 @@ spec:
 
 ---
 
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: triggers.k8s.refunc.io
@@ -152,7 +152,7 @@ spec:
 
 ---
 
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: xenvs.k8s.refunc.io

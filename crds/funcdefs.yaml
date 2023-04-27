@@ -1,0 +1,94 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: funcdefs.k8s.refunc.io
+spec:
+  group: k8s.refunc.io
+  names:
+    kind: Funcdef
+    listKind: FuncdefList
+    plural: funcdefs
+    singular: funcdef
+  scope: Namespaced
+  versions:
+  - name: v1beta3
+    schema:
+      openAPIV3Schema:
+        description: Funcdef is a API object to represent a FUNCtion DEFinition
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: FuncdefSpec is the specification to describe a Funcdef
+            properties:
+              body:
+                description: storage path for function
+                type: string
+              custom:
+                description: Custom any extra or experiments put in here
+                format: byte
+                type: string
+              entry:
+                description: The entry name to execute when a function is activated
+                type: string
+              hash:
+                description: unique hash that can identify current function
+                type: string
+              maxReplicas:
+                description: the maximum number of parallel executors optional, 0
+                  means do not scale
+                format: int32
+                type: integer
+              meta:
+                description: Meta backport for legacy
+                format: byte
+                type: string
+              minReplicas:
+                description: the min number of provisioned executors optional, 0 means
+                  do not provisioned
+                format: int32
+                type: integer
+              runtime:
+                description: Runtime options for agent and runtime builder
+                properties:
+                  envs:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  name:
+                    description: name of xenv
+                    type: string
+                  timeout:
+                    type: integer
+                type: object
+            required:
+            - hash
+            - runtime
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

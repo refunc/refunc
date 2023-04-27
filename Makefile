@@ -83,6 +83,15 @@ dockerbuild: build-container
 	@log_info "make bins in docker"
 	@docker run --rm -it -v $(shell pwd):/github.com/refunc/refunc refunc:build make bins
 
+manifests:
+	rm -rf crds/* && go generate ./pkg/...
+	cd crds && \
+	for file in refunc.refunc.io_*.yaml; do \
+		sed -i 's/refunc.refunc.io/k8s.refunc.io/g' "$$file"; \
+		name=$$(echo "$$file" | awk -F '_' '{print $$2}'); \
+	    mv "$$file" "$$name"; \
+	done
+
 code-gen:
 	go mod vendor
 	rm -rf pkg/apis/refunc/v1beta3/*.deepcopy.go

@@ -23,6 +23,7 @@ var (
 	_ metav1.ListMetaAccessor = (*TriggerList)(nil)
 )
 
+// +kubebuilder:object:root=true
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -34,6 +35,7 @@ type Trigger struct {
 	Spec TriggerSpec `json:"spec"`
 }
 
+// +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // TriggerList is a API object to represent a list of Refuncs

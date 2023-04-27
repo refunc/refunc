@@ -22,6 +22,7 @@ var (
 	_ metav1.ListMetaAccessor = (*XenvList)(nil)
 )
 
+// +kubebuilder:object:root=true
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -33,6 +34,7 @@ type Xenv struct {
 	Spec XenvSpec `json:"spec"`
 }
 
+// +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // XenvList is a API object to represent a list of Xenv

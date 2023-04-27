@@ -9,7 +9,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -215,7 +215,7 @@ func ensureCRDsCreated(cfg *rest.Config) {
 		}
 	}()
 
-	crdcli := clientset.ApiextensionsV1beta1().CustomResourceDefinitions()
+	crdcli := clientset.ApiextensionsV1().CustomResourceDefinitions()
 	for _, crd := range rfv1beta3.CRDs {
 		if _, err = crdcli.Create(context.TODO(), crd.CRD, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 			return
@@ -232,18 +232,18 @@ func ensureCRDsCreated(cfg *rest.Config) {
 func waitCRDEstablished(clientset *apiextensionsclient.Clientset, name string) error {
 	// wait for CRD being established
 	return wait.Poll(100*time.Millisecond, 60*time.Second, func() (bool, error) {
-		crd, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
+		crd, err := clientset.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 		for _, cond := range crd.Status.Conditions {
 			switch cond.Type {
-			case apiextensionsv1beta1.Established:
-				if cond.Status == apiextensionsv1beta1.ConditionTrue {
+			case apiextensionsv1.Established:
+				if cond.Status == apiextensionsv1.ConditionTrue {
 					return true, err
 				}
-			case apiextensionsv1beta1.NamesAccepted:
-				if cond.Status == apiextensionsv1beta1.ConditionFalse {
+			case apiextensionsv1.NamesAccepted:
+				if cond.Status == apiextensionsv1.ConditionFalse {
 					return false, fmt.Errorf("Name conflict: %v", cond.Reason)
 				}
 			}

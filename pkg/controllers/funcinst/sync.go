@@ -22,9 +22,9 @@ import (
 var errXenvNotFound = errors.New("tc: xenv not found")
 
 // sync mainly do the following:
-//	1. instantiates replicaset according to funcdef and xenv
-//	2. specialize pods
-//	3. creates hpa
+//  1. instantiates replicaset according to funcdef and xenv
+//  2. specialize pods
+//  3. creates hpa
 func (rc *Controller) sync(key string) error {
 	startTime := time.Now()
 	defer func() {
@@ -217,7 +217,7 @@ func (rc *Controller) sync(key string) error {
 			}
 			hpa = rc.horizontalPodAutoscaler(fni, fndef, rs.GetName())
 			if err = retryOnceOnError(func() error {
-				hpa, err = rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(fni.Namespace).Create(context.TODO(), hpa, metav1.CreateOptions{})
+				hpa, err = rc.kclient.AutoscalingV2beta2().HorizontalPodAutoscalers(fni.Namespace).Create(context.TODO(), hpa, metav1.CreateOptions{})
 				if apierrors.IsAlreadyExists(err) {
 					hpa, err = rc.getHorizontalPodAutoscaler(fni)
 				}
@@ -234,7 +234,7 @@ func (rc *Controller) sync(key string) error {
 			klog.V(3).Infof("(tc) updating horizontalPodAutoscaler for %q, from %d -> %d", fni.Name, hpa.Spec.MaxReplicas, fndef.Spec.MaxReplicas)
 			return retryOnceOnError(func() error {
 				hpa.Spec.MaxReplicas = fndef.Spec.MaxReplicas
-				hpa, err = rc.kclient.AutoscalingV2beta1().HorizontalPodAutoscalers(fni.Namespace).Update(context.TODO(), hpa, metav1.UpdateOptions{})
+				hpa, err = rc.kclient.AutoscalingV2beta2().HorizontalPodAutoscalers(fni.Namespace).Update(context.TODO(), hpa, metav1.UpdateOptions{})
 				if err != nil {
 					hpa, err = rc.getHorizontalPodAutoscaler(fni)
 				}

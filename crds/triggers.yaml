@@ -1,0 +1,135 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: triggers.k8s.refunc.io
+spec:
+  group: k8s.refunc.io
+  names:
+    kind: Trigger
+    listKind: TriggerList
+    plural: triggers
+    singular: trigger
+  scope: Namespaced
+  versions:
+  - name: v1beta3
+    schema:
+      openAPIV3Schema:
+        description: Trigger is a API object to represent a FUNCtion DEClaration
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TriggerSpec is the specification that describes a funcinst
+              for refunc
+            properties:
+              cron:
+                description: CronTrigger is a funcinst that will be scheduled by cron
+                  string
+                properties:
+                  args:
+                    description: 'Args is passed to function Extra args will be appended
+                      to args $time: RFC3339 formated time $triggerName: name of trigger'
+                    format: byte
+                    type: string
+                  cron:
+                    type: string
+                  location:
+                    description: time zoneinfo location name
+                    type: string
+                  saveLog:
+                    description: If enable will save func exec's log or result to
+                      s3.
+                    type: boolean
+                  saveResult:
+                    type: boolean
+                required:
+                - cron
+                - location
+                - saveLog
+                - saveResult
+                type: object
+              event:
+                description: EventTrigger is a basic trigger for a funcdef
+                properties:
+                  alias:
+                    type: string
+                  middlewares:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              funcName:
+                type: string
+              http:
+                description: HTTPTrigger is a funcinst that will react at HTTP requests
+                  https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html
+                properties:
+                  authType:
+                    type: string
+                  cors:
+                    properties:
+                      allowCredentials:
+                        type: boolean
+                      allowHeaders:
+                        items:
+                          type: string
+                        type: array
+                      allowMethods:
+                        items:
+                          type: string
+                        type: array
+                      allowOrigins:
+                        items:
+                          type: string
+                        type: array
+                      exposeHeaders:
+                        items:
+                          type: string
+                        type: array
+                      maxAge:
+                        type: integer
+                    required:
+                    - allowCredentials
+                    - allowHeaders
+                    - allowMethods
+                    - allowOrigins
+                    - exposeHeaders
+                    - maxAge
+                    type: object
+                required:
+                - authType
+                - cors
+                type: object
+              type:
+                type: string
+            required:
+            - funcName
+            - type
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

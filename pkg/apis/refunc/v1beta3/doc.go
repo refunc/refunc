@@ -6,7 +6,7 @@ Package v1beta3 is list of k8s objects for refunc
 package v1beta3
 
 import (
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,20 +42,26 @@ var trueVar = true
 // CRDs is collections of ThirdPartyResources
 var CRDs = []struct {
 	Name string
-	CRD  *apiextensionsv1beta1.CustomResourceDefinition
+	CRD  *apiextensionsv1.CustomResourceDefinition
 }{
 	// Funcdef
 	{
 		FuncdefPluralName,
-		&apiextensionsv1beta1.CustomResourceDefinition{
+		&apiextensionsv1.CustomResourceDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: FuncdefPluralName + "." + GroupName,
 			},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group:   SchemeGroupVersion.Group,
-				Version: SchemeGroupVersion.Version,
-				Scope:   apiextensionsv1beta1.NamespaceScoped,
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: SchemeGroupVersion.Group,
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    SchemeGroupVersion.Version,
+						Served:  true,
+						Storage: true,
+					},
+				},
+				Scope: apiextensionsv1.NamespaceScoped,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
 					Plural:     FuncdefPluralName,
 					Kind:       FuncdefKind,
 					ShortNames: []string{"fnd"},
@@ -66,15 +72,21 @@ var CRDs = []struct {
 	// Xenv
 	{
 		XenvPluralName,
-		&apiextensionsv1beta1.CustomResourceDefinition{
+		&apiextensionsv1.CustomResourceDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: XenvPluralName + "." + GroupName,
 			},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group:   SchemeGroupVersion.Group,
-				Version: SchemeGroupVersion.Version,
-				Scope:   apiextensionsv1beta1.NamespaceScoped,
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: SchemeGroupVersion.Group,
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    SchemeGroupVersion.Version,
+						Served:  true,
+						Storage: true,
+					},
+				},
+				Scope: apiextensionsv1.NamespaceScoped,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
 					Plural:     XenvPluralName,
 					Kind:       XenvKind,
 					ShortNames: []string{"xe"},
@@ -85,15 +97,21 @@ var CRDs = []struct {
 	// Trigger
 	{
 		TriggerPluralName,
-		&apiextensionsv1beta1.CustomResourceDefinition{
+		&apiextensionsv1.CustomResourceDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: TriggerPluralName + "." + GroupName,
 			},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group:   SchemeGroupVersion.Group,
-				Version: SchemeGroupVersion.Version,
-				Scope:   apiextensionsv1beta1.NamespaceScoped,
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: SchemeGroupVersion.Group,
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    SchemeGroupVersion.Version,
+						Served:  true,
+						Storage: true,
+					},
+				},
+				Scope: apiextensionsv1.NamespaceScoped,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
 					Plural:     TriggerPluralName,
 					Kind:       TriggerKind,
 					ShortNames: []string{"tr"},
@@ -104,15 +122,21 @@ var CRDs = []struct {
 	// Funcinst
 	{
 		FuncinstPluralName,
-		&apiextensionsv1beta1.CustomResourceDefinition{
+		&apiextensionsv1.CustomResourceDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: FuncinstPluralName + "." + GroupName,
 			},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group:   SchemeGroupVersion.Group,
-				Version: SchemeGroupVersion.Version,
-				Scope:   apiextensionsv1beta1.NamespaceScoped,
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: SchemeGroupVersion.Group,
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    SchemeGroupVersion.Version,
+						Served:  true,
+						Storage: true,
+					},
+				},
+				Scope: apiextensionsv1.NamespaceScoped,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
 					Plural:     FuncinstPluralName,
 					Kind:       FuncinstKind,
 					ShortNames: []string{"fni"},

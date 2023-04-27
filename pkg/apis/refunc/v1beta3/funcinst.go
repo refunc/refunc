@@ -26,6 +26,8 @@ var (
 	_ metav1.ListMetaAccessor = (*FuncinstList)(nil)
 )
 
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -38,6 +40,7 @@ type Funcinst struct {
 	Status FuncinstStatus `json:"status,omitempty"`
 }
 
+// +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // FuncinstList is a API object to represent a list of Refuncs

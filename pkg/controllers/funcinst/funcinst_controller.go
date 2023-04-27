@@ -8,7 +8,7 @@ import (
 	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	appsv1 "k8s.io/client-go/listers/apps/v1"
-	autoscalev2beta1 "k8s.io/client-go/listers/autoscaling/v2beta1"
+	autoscalev2beta2 "k8s.io/client-go/listers/autoscaling/v2beta2"
 	corev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -35,7 +35,7 @@ type Controller struct {
 	kubeInformers   k8sinformers.SharedInformerFactory
 	refuncInformers rfinformers.SharedInformerFactory
 
-	hpaLister        autoscalev2beta1.HorizontalPodAutoscalerLister
+	hpaLister        autoscalev2beta2.HorizontalPodAutoscalerLister
 	deploymentLister appsv1.DeploymentLister
 	podLister        corev1.PodLister
 
@@ -69,7 +69,7 @@ func NewController(
 	// config listers
 	r.deploymentLister = kubeinformers.Apps().V1().Deployments().Lister()
 	r.podLister = kubeinformers.Core().V1().Pods().Lister()
-	r.hpaLister = kubeinformers.Autoscaling().V2beta1().HorizontalPodAutoscalers().Lister()
+	r.hpaLister = kubeinformers.Autoscaling().V2beta2().HorizontalPodAutoscalers().Lister()
 
 	r.funcdefLister = refuncInformers.Refunc().V1beta3().Funcdeves().Lister()
 	r.triggerLister = refuncInformers.Refunc().V1beta3().Triggers().Lister()
