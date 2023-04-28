@@ -208,38 +208,72 @@ func (rc *Controller) sync(key string) error {
 
 	// check replicas
 	if fndef.Spec.MaxReplicas > 1 && fndef.Spec.MaxReplicas > fndef.Spec.MinReplicas {
-		hpa, err := rc.hpaLister.HorizontalPodAutoscalers(fni.Namespace).Get(fni.Name)
-		if hpa == nil || k8sutil.IsResourceNotFoundError(err) {
-			klog.Infof("(tc) creating horizontalPodAutoscaler for %q", fni.Name)
-			rs, err := rc.getRuntimeReplciaSet(fni)
+		if rc.hpaV2Lister != nil {
+			hpa, err := rc.hpaV2Lister.HorizontalPodAutoscalers(fni.Namespace).Get(fni.Name)
+			if hpa == nil || k8sutil.IsResourceNotFoundError(err) {
+				klog.Infof("(tc) creating horizontalPodAutoscaler for %q", fni.Name)
+				rs, err := rc.getRuntimeReplciaSet(fni)
+				if err != nil {
+					return err
+				}
+				hpa = rc.horizontalPodAutoscalerV2(fni, fndef, rs.GetName())
+				if err = retryOnceOnError(func() error {
+					hpa, err = rc.kclient.AutoscalingV2().HorizontalPodAutoscalers(fni.Namespace).Create(context.TODO(), hpa, metav1.CreateOptions{})
+					if apierrors.IsAlreadyExists(err) {
+						hpa, err = rc.getHorizontalPodAutoscalerV2(fni)
+					}
+					return err
+				}); err == nil {
+					return nil
+				}
+			}
 			if err != nil {
 				return err
 			}
-			hpa = rc.horizontalPodAutoscaler(fni, fndef, rs.GetName())
-			if err = retryOnceOnError(func() error {
-				hpa, err = rc.kclient.AutoscalingV2beta2().HorizontalPodAutoscalers(fni.Namespace).Create(context.TODO(), hpa, metav1.CreateOptions{})
-				if apierrors.IsAlreadyExists(err) {
-					hpa, err = rc.getHorizontalPodAutoscaler(fni)
-				}
-				return err
-			}); err == nil {
-				return nil
+			if hpa.Spec.MaxReplicas != fndef.Spec.MaxReplicas {
+				klog.V(3).Infof("(tc) updating horizontalPodAutoscaler for %q, from %d -> %d", fni.Name, hpa.Spec.MaxReplicas, fndef.Spec.MaxReplicas)
+				return retryOnceOnError(func() error {
+					hpa.Spec.MaxReplicas = fndef.Spec.MaxReplicas
+					hpa, err = rc.kclient.AutoscalingV2().HorizontalPodAutoscalers(fni.Namespace).Update(context.TODO(), hpa, metav1.UpdateOptions{})
+					if err != nil {
+						hpa, err = rc.getHorizontalPodAutoscalerV2(fni)
+					}
+					return err
+				})
 			}
-		}
-		if err != nil {
-			return err
-		}
-		if hpa.Spec.MaxReplicas != fndef.Spec.MaxReplicas {
-			// update
-			klog.V(3).Infof("(tc) updating horizontalPodAutoscaler for %q, from %d -> %d", fni.Name, hpa.Spec.MaxReplicas, fndef.Spec.MaxReplicas)
-			return retryOnceOnError(func() error {
-				hpa.Spec.MaxReplicas = fndef.Spec.MaxReplicas
-				hpa, err = rc.kclient.AutoscalingV2beta2().HorizontalPodAutoscalers(fni.Namespace).Update(context.TODO(), hpa, metav1.UpdateOptions{})
+		} else {
+			hpa, err := rc.hpaV1Lister.HorizontalPodAutoscalers(fni.Namespace).Get(fni.Name)
+			if hpa == nil || k8sutil.IsResourceNotFoundError(err) {
+				klog.Infof("(tc) creating horizontalPodAutoscaler for %q", fni.Name)
+				rs, err := rc.getRuntimeReplciaSet(fni)
 				if err != nil {
-					hpa, err = rc.getHorizontalPodAutoscaler(fni)
+					return err
 				}
+				hpa = rc.horizontalPodAutoscalerV1(fni, fndef, rs.GetName())
+				if err = retryOnceOnError(func() error {
+					hpa, err = rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(fni.Namespace).Create(context.TODO(), hpa, metav1.CreateOptions{})
+					if apierrors.IsAlreadyExists(err) {
+						hpa, err = rc.getHorizontalPodAutoscalerV1(fni)
+					}
+					return err
+				}); err == nil {
+					return nil
+				}
+			}
+			if err != nil {
 				return err
-			})
+			}
+			if hpa.Spec.MaxReplicas != fndef.Spec.MaxReplicas {
+				klog.V(3).Infof("(tc) updating horizontalPodAutoscaler for %q, from %d -> %d", fni.Name, hpa.Spec.MaxReplicas, fndef.Spec.MaxReplicas)
+				return retryOnceOnError(func() error {
+					hpa.Spec.MaxReplicas = fndef.Spec.MaxReplicas
+					hpa, err = rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(fni.Namespace).Update(context.TODO(), hpa, metav1.UpdateOptions{})
+					if err != nil {
+						hpa, err = rc.getHorizontalPodAutoscalerV1(fni)
+					}
+					return err
+				})
+			}
 		}
 	}
 

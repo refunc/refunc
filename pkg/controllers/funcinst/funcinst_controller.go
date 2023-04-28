@@ -4,11 +4,13 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	appsv1 "k8s.io/client-go/listers/apps/v1"
-	autoscalev2beta2 "k8s.io/client-go/listers/autoscaling/v2beta2"
+	autoscalev1 "k8s.io/client-go/listers/autoscaling/v1"
+	autoscalev2 "k8s.io/client-go/listers/autoscaling/v2"
 	corev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -35,7 +37,8 @@ type Controller struct {
 	kubeInformers   k8sinformers.SharedInformerFactory
 	refuncInformers rfinformers.SharedInformerFactory
 
-	hpaLister        autoscalev2beta2.HorizontalPodAutoscalerLister
+	hpaV1Lister      autoscalev1.HorizontalPodAutoscalerLister
+	hpaV2Lister      autoscalev2.HorizontalPodAutoscalerLister
 	deploymentLister appsv1.DeploymentLister
 	podLister        corev1.PodLister
 
@@ -66,10 +69,25 @@ func NewController(
 	r.kubeInformers = kubeinformers
 	r.refuncInformers = refuncInformers
 
+	serverVersion, err := kclient.Discovery().ServerVersion()
+	if err != nil {
+		return nil, err
+	}
+	version123, _ := version.ParseGeneric("v1.23.0")
+	runningVersion, err := version.ParseGeneric(serverVersion.String())
+	if err != nil {
+		return nil, err
+	}
+
 	// config listers
 	r.deploymentLister = kubeinformers.Apps().V1().Deployments().Lister()
 	r.podLister = kubeinformers.Core().V1().Pods().Lister()
-	r.hpaLister = kubeinformers.Autoscaling().V2beta2().HorizontalPodAutoscalers().Lister()
+	r.hpaV1Lister = kubeinformers.Autoscaling().V1().HorizontalPodAutoscalers().Lister()
+	r.hpaV2Lister = nil
+
+	if runningVersion.AtLeast(version123) {
+		r.hpaV2Lister = kubeinformers.Autoscaling().V2().HorizontalPodAutoscalers().Lister()
+	}
 
 	r.funcdefLister = refuncInformers.Refunc().V1beta3().Funcdeves().Lister()
 	r.triggerLister = refuncInformers.Refunc().V1beta3().Triggers().Lister()
@@ -124,6 +142,10 @@ func NewController(
 		r.kubeInformers.Apps().V1().ReplicaSets().Informer().HasSynced,
 		r.kubeInformers.Autoscaling().V1().HorizontalPodAutoscalers().Informer().HasSynced,
 		r.kubeInformers.Apps().V1().Deployments().Informer().HasSynced,
+	}
+
+	if runningVersion.AtLeast(version123) {
+		r.wantedInformers = append(r.wantedInformers, r.kubeInformers.Autoscaling().V2().HorizontalPodAutoscalers().Informer().HasSynced)
 	}
 
 	return r, nil

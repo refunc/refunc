@@ -95,7 +95,7 @@ func (c *FakeFuncdeves) Update(ctx context.Context, funcdef *v1beta3.Funcdef, op
 // Delete takes name of the funcdef and deletes it. Returns an error if one occurs.
 func (c *FakeFuncdeves) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(funcdevesResource, c.ns, name), &v1beta3.Funcdef{})
+		Invokes(testing.NewDeleteActionWithOptions(funcdevesResource, c.ns, name, opts), &v1beta3.Funcdef{})
 
 	return err
 }

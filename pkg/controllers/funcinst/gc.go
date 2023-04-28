@@ -6,9 +6,6 @@ import (
 	"math"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
-	autoscalev1 "k8s.io/api/autoscaling/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
@@ -125,107 +122,12 @@ func (rc *Controller) collectGarbadge() {
 				return
 			}
 
-			if err := rc.cleanup(funcinst); err != nil {
-				klog.Errorf("(tc:gc) fail to cleanup %q, %v", key, err)
-				return
-			}
 			klog.Infof("(tc:gc) collected %q", key)
 		},
 	)
+
 	if err != nil {
 		klog.Warningf("(tc:gc) failed to collect funcinsts, %v", err)
 	}
 
-	// collect orphans
-	if err := rc.collectOrphanReplicas(); err != nil {
-		klog.Warningf("(tc:gc) failed to collect orphan replicas, %v", err)
-	}
-	if err := rc.collectOrphanHPAs(); err != nil {
-		klog.Warningf("(tc:gc) failed to collect orphan HAPs, %v", err)
-	}
-}
-
-func (rc *Controller) cleanup(funcinst *rfv1beta3.Funcinst) error {
-	rs, err := rc.getRuntimeReplciaSet(funcinst)
-	if err != nil && !k8sutil.IsResourceNotFoundError(err) {
-		klog.Warningf("(tc:gc) cannot find replicas for %s/%s, %v", funcinst.Namespace, funcinst.Name, err)
-	}
-	if rs != nil {
-		return rc.kclient.AppsV1().ReplicaSets(rs.Namespace).Delete(context.TODO(), rs.Name, *k8sutil.CascadeDeleteOptions(0))
-	}
-
-	hpa, err := rc.getHorizontalPodAutoscaler(funcinst)
-	if err != nil && !k8sutil.IsResourceNotFoundError(err) {
-		klog.Warningf("(tc:gc) cannot find HPA for %s/%s, %v", funcinst.Namespace, funcinst.Name, err)
-	}
-	if hpa != nil {
-		return rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(hpa.Namespace).Delete(context.TODO(), hpa.Name, *k8sutil.CascadeDeleteOptions(0))
-	}
-
-	return nil
-}
-
-func (rc *Controller) collectOrphanReplicas() error {
-	return cache.ListAll(
-		rc.kubeInformers.Apps().V1().ReplicaSets().Informer().GetIndexer(),
-		labels.Everything(),
-		func(m interface{}) {
-			rs, ok := m.(*appsv1.ReplicaSet)
-			if !ok {
-				// it's cache.DeletedFinalStateUnknown
-				return
-			}
-			if ctlRef := metav1.GetControllerOf(rs); ctlRef != nil {
-				if ctlRef.Kind != rfv1beta3.FuncinstKind || ctlRef.APIVersion != rfv1beta3.APIVersion {
-					return
-				}
-				if fni, err := rc.funcinstLister.Funcinsts(rs.Namespace).Get(ctlRef.Name); (fni != nil && fni.Spec.FuncdefRef == nil) || (k8sutil.IsResourceNotFoundError(err) && rs.DeletionTimestamp == nil) {
-					klog.V(3).Infof("(tc:gc) cleanup orphan rs %s/%s", rs.Namespace, rs.Name)
-					err = retryOnceOnError(func() error {
-						err = rc.kclient.AppsV1().ReplicaSets(rs.Namespace).Delete(context.TODO(), rs.Name, *k8sutil.CascadeDeleteOptions(0))
-						if k8sutil.IsResourceNotFoundError(err) {
-							return nil
-						}
-						return err
-					})
-					if err != nil {
-						klog.Errorf("(tc:gc) delete orphan rs %s/%s failed, %v", rs.Namespace, rs.Name, err)
-					}
-
-				}
-			}
-		},
-	)
-}
-
-func (rc *Controller) collectOrphanHPAs() error {
-	return cache.ListAll(
-		rc.kubeInformers.Autoscaling().V1().HorizontalPodAutoscalers().Informer().GetIndexer(),
-		labels.Everything(),
-		func(m interface{}) {
-			as, ok := m.(*autoscalev1.HorizontalPodAutoscaler)
-			if !ok {
-				// it's cache.DeletedFinalStateUnknown
-				return
-			}
-			if ctlRef := metav1.GetControllerOf(as); ctlRef != nil {
-				if ctlRef.Kind != rfv1beta3.FuncinstKind || ctlRef.APIVersion != rfv1beta3.APIVersion {
-					return
-				}
-				if fni, err := rc.funcinstLister.Funcinsts(as.Namespace).Get(ctlRef.Name); (fni != nil && fni.Spec.FuncdefRef == nil) || (k8sutil.IsResourceNotFoundError(err) && as.DeletionTimestamp == nil) {
-					klog.V(3).Infof("(tc:gc) cleanup orphan HPA %s/%s", as.Namespace, as.Name)
-					err = retryOnceOnError(func() error {
-						err = rc.kclient.AutoscalingV1().HorizontalPodAutoscalers(as.Namespace).Delete(context.TODO(), as.Name, *k8sutil.CascadeDeleteOptions(0))
-						if k8sutil.IsResourceNotFoundError(err) {
-							return nil
-						}
-						return err
-					})
-					if err != nil {
-						klog.Errorf("(tc:gc) delete orphan HPA %s/%s failed, %v", as.Namespace, as.Name, err)
-					}
-				}
-			}
-		},
-	)
 }

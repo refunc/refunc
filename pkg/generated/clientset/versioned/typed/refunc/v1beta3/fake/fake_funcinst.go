@@ -107,7 +107,7 @@ func (c *FakeFuncinsts) UpdateStatus(ctx context.Context, funcinst *v1beta3.Func
 // Delete takes name of the funcinst and deletes it. Returns an error if one occurs.
 func (c *FakeFuncinsts) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(funcinstsResource, c.ns, name), &v1beta3.Funcinst{})
+		Invokes(testing.NewDeleteActionWithOptions(funcinstsResource, c.ns, name, opts), &v1beta3.Funcinst{})
 
 	return err
 }

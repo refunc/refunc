@@ -95,7 +95,7 @@ func (c *FakeTriggers) Update(ctx context.Context, trigger *v1beta3.Trigger, opt
 // Delete takes name of the trigger and deletes it. Returns an error if one occurs.
 func (c *FakeTriggers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(triggersResource, c.ns, name), &v1beta3.Trigger{})
+		Invokes(testing.NewDeleteActionWithOptions(triggersResource, c.ns, name, opts), &v1beta3.Trigger{})
 
 	return err
 }

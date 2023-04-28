@@ -95,7 +95,7 @@ func (c *FakeXenvs) Update(ctx context.Context, xenv *v1beta3.Xenv, opts v1.Upda
 // Delete takes name of the xenv and deletes it. Returns an error if one occurs.
 func (c *FakeXenvs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(xenvsResource, c.ns, name), &v1beta3.Xenv{})
+		Invokes(testing.NewDeleteActionWithOptions(xenvsResource, c.ns, name, opts), &v1beta3.Xenv{})
 
 	return err
 }
