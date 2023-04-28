@@ -84,7 +84,7 @@ metadata:
 ---
 
 kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: refunc
   namespace: {{ .Namespace }}
@@ -112,7 +112,14 @@ spec:
     - fnd
     singular: funcdef
   scope: Namespaced
-  version: v1beta3
+  versions:
+    - name: v1beta3
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
 
 ---
 
@@ -130,7 +137,14 @@ spec:
     - fni
     singular: funcinst
   scope: Namespaced
-  version: v1beta3
+  versions:
+    - name: v1beta3
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
 
 ---
 
@@ -148,7 +162,14 @@ spec:
     - tr
     singular: trigger
   scope: Namespaced
-  version: v1beta3
+  versions:
+    - name: v1beta3
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
 
 ---
 
@@ -167,7 +188,14 @@ spec:
     - xe
     singular: xenv
   scope: Namespaced
-  version: v1beta3
+  versions:
+    - name: v1beta3
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
 
 ---
 

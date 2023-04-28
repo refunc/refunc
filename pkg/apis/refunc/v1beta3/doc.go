@@ -58,6 +58,12 @@ var CRDs = []struct {
 						Name:    SchemeGroupVersion.Version,
 						Served:  true,
 						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type:                   "object",
+								XPreserveUnknownFields: &trueVar,
+							},
+						},
 					},
 				},
 				Scope: apiextensionsv1.NamespaceScoped,
@@ -83,6 +89,12 @@ var CRDs = []struct {
 						Name:    SchemeGroupVersion.Version,
 						Served:  true,
 						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type:                   "object",
+								XPreserveUnknownFields: &trueVar,
+							},
+						},
 					},
 				},
 				Scope: apiextensionsv1.NamespaceScoped,
@@ -108,6 +120,12 @@ var CRDs = []struct {
 						Name:    SchemeGroupVersion.Version,
 						Served:  true,
 						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type:                   "object",
+								XPreserveUnknownFields: &trueVar,
+							},
+						},
 					},
 				},
 				Scope: apiextensionsv1.NamespaceScoped,
@@ -133,6 +151,12 @@ var CRDs = []struct {
 						Name:    SchemeGroupVersion.Version,
 						Served:  true,
 						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type:                   "object",
+								XPreserveUnknownFields: &trueVar,
+							},
+						},
 					},
 				},
 				Scope: apiextensionsv1.NamespaceScoped,

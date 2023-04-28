@@ -13,6 +13,8 @@ spec:
     kind: Trigger
     listKind: TriggerList
     plural: triggers
+    shortNames:
+    - tr
     singular: trigger
   scope: Namespaced
   versions:
@@ -44,8 +46,7 @@ spec:
                   args:
                     description: 'Args is passed to function Extra args will be appended
                       to args $time: RFC3339 formated time $triggerName: name of trigger'
-                    format: byte
-                    type: string
+                    x-kubernetes-preserve-unknown-fields: true
                   cron:
                     type: string
                   location:
@@ -59,9 +60,6 @@ spec:
                     type: boolean
                 required:
                 - cron
-                - location
-                - saveLog
-                - saveResult
                 type: object
               event:
                 description: EventTrigger is a basic trigger for a funcdef
@@ -103,17 +101,7 @@ spec:
                         type: array
                       maxAge:
                         type: integer
-                    required:
-                    - allowCredentials
-                    - allowHeaders
-                    - allowMethods
-                    - allowOrigins
-                    - exposeHeaders
-                    - maxAge
                     type: object
-                required:
-                - authType
-                - cors
                 type: object
               type:
                 type: string

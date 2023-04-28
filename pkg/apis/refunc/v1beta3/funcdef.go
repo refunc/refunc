@@ -25,6 +25,7 @@ var (
 )
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=funcdeves,singular=funcdef,shortName=fnd
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -50,7 +51,7 @@ type FuncdefList struct {
 // FuncdefSpec is the specification to describe a Funcdef
 type FuncdefSpec struct {
 	// storage path for function
-	Body string `json:"body,omitempty"`
+	Body string `json:"body"`
 	// unique hash that can identify current function
 	Hash string `json:"hash"`
 	// The entry name to execute when a function is activated
@@ -63,8 +64,12 @@ type FuncdefSpec struct {
 	MaxReplicas int32 `json:"maxReplicas,omitempty"`
 	// Runtime options for agent and runtime builder
 	Runtime *Runtime `json:"runtime"`
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
 	// Meta backport for legacy
 	Meta json.RawMessage `json:"meta,omitempty"`
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
 	// Custom any extra or experiments put in here
 	Custom json.RawMessage `json:"custom,omitempty"`
 }
@@ -72,7 +77,7 @@ type FuncdefSpec struct {
 // Runtime runtime to operate this template
 type Runtime struct {
 	// name of xenv
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 
 	Envs    map[string]string `json:"envs,omitempty"`
 	Timeout int               `json:"timeout,omitempty"`

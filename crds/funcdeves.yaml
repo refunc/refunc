@@ -6,13 +6,15 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
-  name: funcdefs.k8s.refunc.io
+  name: funcdeves.k8s.refunc.io
 spec:
   group: k8s.refunc.io
   names:
     kind: Funcdef
     listKind: FuncdefList
-    plural: funcdefs
+    plural: funcdeves
+    shortNames:
+    - fnd
     singular: funcdef
   scope: Namespaced
   versions:
@@ -41,8 +43,7 @@ spec:
                 type: string
               custom:
                 description: Custom any extra or experiments put in here
-                format: byte
-                type: string
+                x-kubernetes-preserve-unknown-fields: true
               entry:
                 description: The entry name to execute when a function is activated
                 type: string
@@ -56,8 +57,7 @@ spec:
                 type: integer
               meta:
                 description: Meta backport for legacy
-                format: byte
-                type: string
+                x-kubernetes-preserve-unknown-fields: true
               minReplicas:
                 description: the min number of provisioned executors optional, 0 means
                   do not provisioned
@@ -75,8 +75,11 @@ spec:
                     type: string
                   timeout:
                     type: integer
+                required:
+                - name
                 type: object
             required:
+            - body
             - hash
             - runtime
             type: object

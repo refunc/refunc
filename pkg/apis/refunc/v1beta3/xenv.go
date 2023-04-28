@@ -23,6 +23,7 @@ var (
 )
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=xenvs,singular=xenv,shortName=xe
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -53,7 +54,7 @@ type XenvSpec struct {
 	Transport string `json:"transport,omitempty"`
 
 	// Container spec https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#container-v1-core
-	Container corev1.Container `json:"container"`
+	Container XenvContainer `json:"container"`
 
 	// Secrets to pull image
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
@@ -68,9 +69,35 @@ type XenvSpec struct {
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 
 	// A key used for runtime builder to access the shell
-	SetupKey string `json:"key"`
+	SetupKey string `json:"key,omitempty"`
 
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Extra json.RawMessage `json:"extra,omitempty"`
+}
+
+type XenvContainer struct {
+	Image           string                      `json:"image" protobuf:"bytes,2,opt,name=image"`
+	Command         []string                    `json:"command,omitempty" protobuf:"bytes,3,rep,name=command"`
+	Env             []corev1.EnvVar             `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	Resources       corev1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,8,opt,name=resources"`
+	VolumeMounts    []corev1.VolumeMount        `json:"volumeMounts,omitempty" patchStrategy:"merge" patchMergeKey:"mountPath" protobuf:"bytes,9,rep,name=volumeMounts"`
+	ImagePullPolicy corev1.PullPolicy           `json:"imagePullPolicy,omitempty" protobuf:"bytes,14,opt,name=imagePullPolicy,casttype=PullPolicy"`
+	SecurityContext *corev1.SecurityContext     `json:"securityContext,omitempty" protobuf:"bytes,15,opt,name=securityContext"`
+}
+
+func (c *XenvContainer) DeepCopyContainer() *corev1.Container {
+	in := c.DeepCopy()
+	return &corev1.Container{
+		Name:            "body",
+		Image:           in.Image,
+		Command:         in.Command,
+		Env:             in.Env,
+		Resources:       in.Resources,
+		VolumeMounts:    in.VolumeMounts,
+		ImagePullPolicy: in.ImagePullPolicy,
+		SecurityContext: in.SecurityContext,
+	}
 }
 
 // AsOwner returns *metav1.OwnerReference

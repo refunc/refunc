@@ -24,6 +24,7 @@ var (
 )
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=triggers,singular=trigger,shortName=tr
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -71,31 +72,33 @@ type EventTrigger struct {
 type CronTrigger struct {
 	Cron string `json:"cron"`
 	// time zoneinfo location name
-	Location string `json:"location"`
+	Location string `json:"location,omitempty"`
 	// Args is passed to function
 	// Extra args will be appended to args
 	// $time: RFC3339 formated time
 	// $triggerName: name of trigger
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Args json.RawMessage `json:"args,omitempty"`
 	// If enable will save func exec's log or result to s3.
-	SaveLog    bool `json:"saveLog"`
-	SaveResult bool `json:"saveResult"`
+	SaveLog    bool `json:"saveLog,omitempty"`
+	SaveResult bool `json:"saveResult,omitempty"`
 }
 
 // HTTPTrigger is a funcinst that will react at HTTP requests
 // https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html
 type HTTPTrigger struct {
-	AuthType string          `json:"authType"`
-	Cors     HTTPTriggerCors `json:"cors"`
+	AuthType string          `json:"authType,omitempty"`
+	Cors     HTTPTriggerCors `json:"cors,omitempty"`
 }
 
 type HTTPTriggerCors struct {
-	AllowCredentials bool     `json:"allowCredentials"`
-	AllowHeaders     []string `json:"allowHeaders"`
-	AllowMethods     []string `json:"allowMethods"`
-	AllowOrigins     []string `json:"allowOrigins"`
-	ExposeHeaders    []string `json:"exposeHeaders"`
-	MaxAge           int      `json:"maxAge"`
+	AllowCredentials bool     `json:"allowCredentials,omitempty"`
+	AllowHeaders     []string `json:"allowHeaders,omitempty"`
+	AllowMethods     []string `json:"allowMethods,omitempty"`
+	AllowOrigins     []string `json:"allowOrigins,omitempty"`
+	ExposeHeaders    []string `json:"exposeHeaders,omitempty"`
+	MaxAge           int      `json:"maxAge,omitempty"`
 }
 
 // AsOwner returns *metav1.OwnerReference

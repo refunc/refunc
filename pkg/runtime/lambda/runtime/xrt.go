@@ -67,7 +67,7 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *appsv1.Deployment 
 	json.Unmarshal(tpl.Spec.Extra, &extraCfg) // nolint:errcheck
 
 	// setting up containers
-	container := tpl.Spec.Container.DeepCopy()
+	container := tpl.Spec.Container.DeepCopyContainer()
 	container.Name = "body"
 
 	var initContainers []corev1.Container
