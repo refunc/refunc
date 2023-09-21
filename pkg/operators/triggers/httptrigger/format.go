@@ -114,19 +114,16 @@ func isBinary(bts []byte) bool {
 
 func formatResponsePayload(bts []byte) (ResponsePayload, error) {
 	payload := ResponsePayload{StatusCode: 0}
-	// is valid JSON
-	if err := json.Unmarshal(bts, &payload); err != nil {
-		return payload, err
-	}
-	// have status code
-	if payload.StatusCode == 0 {
+	// any response or json response
+	if err := json.Unmarshal(bts, &payload); err != nil || payload.StatusCode == 0 {
 		payload.StatusCode = 200
 		payload.Headers = map[string]string{
 			"Content-Type": jsonCT,
 		}
 		payload.IsBase64Encoded = false
 		payload.Body = string(bts)
+		return payload, nil
 	}
-	// customize
+	// custom response payload
 	return payload, nil
 }
