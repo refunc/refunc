@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/handlers"
@@ -47,6 +48,12 @@ func (l *httpLoader) setup() {
 		"_HANDLER":                    l.fn.Spec.Runtime.Envs["_HANDLER"],
 		"AWS_LAMBDA_FUNCTION_HANDLER": l.fn.Spec.Runtime.Envs["_HANDLER"],
 		"AWS_LAMBDA_RUNTIME_API":      l.fn.Spec.Runtime.Envs["AWS_LAMBDA_RUNTIME_API"],
+	}
+	for key, value := range l.fn.Spec.Runtime.Envs {
+		if strings.HasPrefix(key, "REFUNC_") || strings.HasPrefix(key, "AWS_") {
+			continue
+		}
+		fn.Spec.Runtime.Envs[key] = value
 	}
 	bts, err := json.Marshal(fn)
 	if err != nil {
