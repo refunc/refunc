@@ -308,7 +308,8 @@ var (
 	defaultPoolSize int32 = 1 // default replcias
 )
 
-func (rt *lambda) genFunction(pod *corev1.Pod, fninst *rfv1beta3.Funcinst, fndef *rfv1beta3.Funcdef) (*types.Function, error) {
+func (rt *lambda) genFunction(pod *corev1.Pod, fninst *rfv1beta3.Funcinst, fcdef *rfv1beta3.Funcdef) (*types.Function, error) {
+	fndef := fcdef.DeepCopy()
 	if fndef.Spec.Entry == "" {
 		return nil, errors.New("lambda: handler is empty")
 	}
