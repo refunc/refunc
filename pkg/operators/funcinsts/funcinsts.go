@@ -279,7 +279,7 @@ func (r *Operator) tappingFuncinsts(stopC <-chan struct{}) {
 			// nolint:errcheck
 			retryOnceOnError(func() error {
 				fni.Status.ActiveCondition().LastUpdateTime = activeFuncs[key].Format(time.RFC3339)
-				if fni, err = r.RefuncClient.RefuncV1beta3().Funcinsts(ns).Update(context.TODO(), fni, metav1.UpdateOptions{}); err == nil {
+				if fni, err = r.RefuncClient.RefuncV1beta3().Funcinsts(ns).UpdateStatus(context.TODO(), fni, metav1.UpdateOptions{}); err == nil {
 					return nil
 				}
 				// Update the Refunc with the latest resource version for the next poll

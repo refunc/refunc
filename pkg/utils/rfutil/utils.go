@@ -154,7 +154,7 @@ func UpdateFuncinstStatus(c rfcliv1.FuncinstInterface, funcinst *rfv1beta3.Funci
 		}
 
 		t.Status = status
-		updatedFni, updateErr = c.Update(context.TODO(), t, metav1.UpdateOptions{})
+		updatedFni, updateErr = c.UpdateStatus(context.TODO(), t, metav1.UpdateOptions{})
 		if updateErr == nil {
 			klog.V(3).Infof("updated %s", msg(updatedFni, i))
 			return updatedFni, nil
