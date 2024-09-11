@@ -53,6 +53,10 @@ func (l *httpLoader) setup() {
 		if strings.HasPrefix(key, "REFUNC_") || strings.HasPrefix(key, "AWS_") {
 			continue
 		}
+		// (Fix me) auto remove inner REFUNC_ or AWS_ env, if user want set REFUNC_ or AWS_ env, should have an ENV_ prefix.
+		if strings.HasPrefix(key, "ENV_REFUNC_") || strings.HasPrefix(key, "ENV_AWS_") {
+			key = strings.TrimPrefix(key, "ENV_")
+		}
 		fn.Spec.Runtime.Envs[key] = value
 	}
 	bts, err := json.Marshal(fn)
