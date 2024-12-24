@@ -6,4 +6,5 @@ import "github.com/refunc/refunc/pkg/runtime/types"
 type Loader interface {
 	C() <-chan struct{}
 	Function() *types.Function
+	Setup()
 }

@@ -36,6 +36,8 @@ func (l *loader) Function() *types.Function {
 	return l.fn
 }
 
+func (l *loader) Setup() {}
+
 func (l *loader) loadConfig() (ok bool) {
 	if _, err := os.Stat(l.file); os.IsNotExist(err) {
 		return

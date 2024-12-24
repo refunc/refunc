@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 	"sync"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -138,7 +139,10 @@ func (sc *Sidecar) start(ctx context.Context, factory serverFactor) {
 
 	go func() {
 		defer sc.cancel()
-
+		go func() {
+			<-time.After(2 * time.Millisecond)
+			sc.loader.Setup()
+		}()
 		if err := serve(handler); err != nil {
 			klog.Errorf("(sidecar) http exited with error, %v", err)
 		}

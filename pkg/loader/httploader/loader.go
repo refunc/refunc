@@ -40,7 +40,7 @@ func (l *httpLoader) Function() *types.Function {
 	return l.fn
 }
 
-func (l *httpLoader) setup() {
+func (l *httpLoader) Setup() {
 	var fn types.Function
 	fn.ObjectMeta = l.fn.ObjectMeta
 	fn.Spec.Body, fn.Spec.Hash, fn.Spec.Cmd = l.fn.Spec.Body, l.fn.Spec.Hash, l.fn.Spec.Cmd
@@ -123,15 +123,6 @@ func NewLoader(ctx context.Context, addr string, folder string) (loader.Loader, 
 		Addr:    addr,
 		Handler: handler,
 	}
-
-	go func() {
-		<-l.c
-		if l.fn == nil {
-			klog.Error("(httploader) setup funcdef error, fn is nil")
-			return
-		}
-		l.setup()
-	}()
 
 	// kickoff and serve
 	go func() {
