@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
 
 	rfv1beta3 "github.com/refunc/refunc/pkg/apis/refunc/v1beta3"
@@ -127,6 +128,8 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *appsv1.Deployment 
 	transp := transport.ForXenv(tpl)
 	if sidecar := transp.GetTransportContainer(tpl); sidecar != nil {
 		sidecar.VolumeMounts = append(sidecar.VolumeMounts, *(refuncVolumeMnt.DeepCopy()))
+		//inject probes
+		sidecar.LivenessProbe = carProbes()
 		containers = append(containers, *sidecar)
 	}
 
@@ -307,6 +310,21 @@ var (
 	}
 	defaultPoolSize int32 = 1 // default replcias
 )
+
+func carProbes() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			TCPSocket: &corev1.TCPSocketAction{
+				Port: intstr.FromInt(7788),
+			},
+		},
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 3,
+		SuccessThreshold:    1,
+		FailureThreshold:    3,
+	}
+}
 
 func (rt *lambda) genFunction(pod *corev1.Pod, fninst *rfv1beta3.Funcinst, fcdef *rfv1beta3.Funcdef) (*types.Function, error) {
 	fndef := fcdef.DeepCopy()
