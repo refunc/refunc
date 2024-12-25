@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog"
 
 	nats "github.com/nats-io/nats.go"
@@ -21,6 +23,7 @@ import (
 	"github.com/refunc/refunc/pkg/utils/cmdutil"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/pflagenv/wrapcobra"
 	"github.com/refunc/refunc/pkg/utils/cmdutil/sharedcfg"
+	"github.com/refunc/refunc/pkg/utils/k8sutil"
 	"github.com/refunc/refunc/pkg/version"
 	"github.com/spf13/cobra"
 
@@ -119,7 +122,7 @@ func startCmd() *cobra.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			ctx = client.WithNatsConn(ctx, natsConn)
 
-			sc := sharedcfg.New(ctx, config.Namespace)
+			sc, tsc := sharedcfg.New(ctx, config.Namespace), sharedcfg.New(ctx, config.Namespace)
 			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
 				// create funcinst controller
 				fnic, err := funcinst.NewController(
@@ -188,7 +191,7 @@ func startCmd() *cobra.Command {
 				return r
 			})
 
-			sc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
+			tsc.AddController(func(cfg sharedcfg.Configs) sharedcfg.Runner {
 				r, err := httptrigger.NewOperator(
 					cfg.Context(),
 					cfg.RestConfig(),
@@ -208,19 +211,70 @@ func startCmd() *cobra.Command {
 			})
 
 			var wg sync.WaitGroup
+			run := func(ctx context.Context) {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					klog.Infof("Refunc  Version: %s", version.Version)
+					klog.Infof("Loader  Version: %s", version.LoaderVersion)
+					klog.Infof("Sidecar Version: %s", version.SidecarVersion)
+					sc.Run(ctx.Done())
+				}()
+
+				klog.Infof(`Received signal "%v", exiting...`, <-cmdutil.GetSysSig())
+				cancel()
+				os.Exit(0)
+			}
+
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				klog.Infof("Refunc  Version: %s", version.Version)
-				klog.Infof("Loader  Version: %s", version.LoaderVersion)
-				klog.Infof("Sidecar Version: %s", version.SidecarVersion)
-				sc.Run(ctx.Done())
+				tsc.Run(ctx.Done())
 			}()
 
-			klog.Infof(`Received signal "%v", exiting...`, <-cmdutil.GetSysSig())
+			id, err := os.Hostname()
+			if err != nil {
+				klog.Fatalf("Failed to get hostname: %v", err)
+			}
 
-			cancel()
-			wg.Wait()
+			rl, err := resourcelock.New(
+				resourcelock.EndpointsResourceLock,
+				namespace,
+				"refunc-play-controllers",
+				sc.Configs().KubeClient().CoreV1(),
+				sc.Configs().KubeClient().CoordinationV1(),
+				resourcelock.ResourceLockConfig{
+					Identity: id,
+					EventRecorder: k8sutil.CreateRecorder(
+						sc.Configs().KubeClient(),
+						name,
+						namespace,
+					),
+				},
+			)
+			if err != nil {
+				klog.Fatalf("Fail to create lock, %v", err)
+			}
+
+			leaderelection.RunOrDie(ctx,
+				leaderelection.LeaderElectionConfig{
+					Lock:          rl,
+					LeaseDuration: 15 * time.Second,
+					RenewDeadline: 10 * time.Second,
+					RetryPeriod:   2 * time.Second,
+					Callbacks: leaderelection.LeaderCallbacks{
+						OnStartedLeading: run,
+						OnStoppedLeading: func() {
+							klog.Info("Stop leading, exit")
+							cancel()
+							wg.Wait()
+						},
+						OnNewLeader: func(identity string) {
+							klog.Infof("New leader %q detected", identity)
+						},
+					},
+				},
+			)
 		},
 	}
 	return cmd
