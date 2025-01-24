@@ -159,7 +159,7 @@ var defaultHTTPClient = http.Client{
 	Transport: &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
+			Timeout:   15 * time.Second,
 			KeepAlive: 30 * time.Second,
 			DualStack: true,
 		}).DialContext,
@@ -192,12 +192,12 @@ func (rt *lambda) InitPod(pod *corev1.Pod, funcinst *rfv1beta3.Funcinst, fndef *
 	}
 
 	var rsp *http.Response
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 2; i++ {
 		rsp, err = defaultHTTPClient.Post(fmt.Sprintf("http://%s:7788/init", pod.Status.PodIP), "application/json", bytes.NewReader(bts))
 		if err == nil {
 			break
 		}
-		<-time.After(100 * time.Millisecond)
+		<-time.After(50 * time.Millisecond)
 	}
 	if err != nil {
 		return err
