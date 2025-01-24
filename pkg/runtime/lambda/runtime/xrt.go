@@ -80,6 +80,9 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *appsv1.Deployment 
 			container.Command = append(container.Command, "--")
 			container.Command = append(container.Command, orginCmd...)
 		}
+		if len(tpl.Spec.InitContainers) > 0 {
+			initContainers = append(initContainers, tpl.Spec.DeepCopy().InitContainers...)
+		}
 		initContainers = append(initContainers, *initContainer.DeepCopy())
 	}
 
@@ -131,6 +134,9 @@ func (rt *lambda) GetDeploymentTemplate(tpl *rfv1beta3.Xenv) *appsv1.Deployment 
 		//inject probes
 		sidecar.LivenessProbe = carProbes()
 		containers = append(containers, *sidecar)
+	}
+	if len(tpl.Spec.SideContainers) > 0 {
+		containers = append(containers, tpl.Spec.DeepCopy().SideContainers...)
 	}
 
 	dep := &appsv1.Deployment{

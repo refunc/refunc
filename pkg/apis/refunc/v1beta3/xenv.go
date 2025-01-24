@@ -56,6 +56,12 @@ type XenvSpec struct {
 	// Container spec https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#container-v1-core
 	Container XenvContainer `json:"container"`
 
+	// SideContainers
+	SideContainers []corev1.Container `json:"sideContainers,omitempty"`
+
+	// InitContainers
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+
 	// Secrets to pull image
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
