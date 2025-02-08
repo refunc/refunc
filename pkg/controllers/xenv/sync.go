@@ -18,6 +18,10 @@ import (
 	"github.com/refunc/refunc/pkg/utils/rfutil"
 )
 
+var (
+	AnnotationXenvInitHash = "refunc.io/init-hash"
+)
+
 func (rc *Controller) sync(key string) error {
 	startTime := time.Now()
 	defer func() {
@@ -76,7 +80,13 @@ func (rc *Controller) sync(key string) error {
 		}
 		// upgrade pool if needed
 		tgt := rc.getDeployment(rt, xenv)
-		if dep.Spec.Template.Spec.InitContainers[0].Image != tgt.Spec.Template.Spec.InitContainers[0].Image {
+		depInitHash := ""
+		if dep.Annotations != nil {
+			if current, ok := dep.Annotations[AnnotationXenvInitHash]; ok {
+				depInitHash = current
+			}
+		}
+		if depInitHash != tgt.Annotations[AnnotationXenvInitHash] {
 			// we need recreate pool
 			return rc.kclient.AppsV1().Deployments(dep.Namespace).Delete(context.TODO(), dep.Name, *k8sutil.CascadeDeleteOptions(0))
 		}
@@ -112,6 +122,10 @@ func (rc *Controller) getDeployment(r runtime.Interface, xenv *rfv1beta3.Xenv) *
 	for k, v := range rfutil.XenvLabels(xenv) {
 		dep.Labels[k] = v
 	}
+	if dep.Annotations == nil {
+		dep.Annotations = make(map[string]string)
+	}
+	dep.Annotations[AnnotationXenvInitHash] = rfutil.GetMD5Hash(dep.Spec.Template.Spec.InitContainers)
 	dep.Spec.Selector.MatchLabels = dep.Labels
 	dep.Spec.Template.Labels = dep.Labels
 	// set owner
