@@ -57,9 +57,10 @@ type TriggerSpec struct {
 
 // TriggerConfig is configuraion for a specific trigger
 type TriggerConfig struct {
-	Event *EventTrigger `json:"event,omitempty"`
-	Cron  *CronTrigger  `json:"cron,omitempty"`
-	HTTP  *HTTPTrigger  `json:"http,omitempty"`
+	Event  *EventTrigger  `json:"event,omitempty"`
+	Cron   *CronTrigger   `json:"cron,omitempty"`
+	HTTP   *HTTPTrigger   `json:"http,omitempty"`
+	Common *CommonTrigger `json:"common,omitempty"`
 }
 
 // EventTrigger is a basic trigger for a funcdef
@@ -83,6 +84,15 @@ type CronTrigger struct {
 	// If enable will save func exec's log or result to s3.
 	SaveLog    bool `json:"saveLog,omitempty"`
 	SaveResult bool `json:"saveResult,omitempty"`
+}
+
+// CommonTrigger is a placeholder trigger, for store the trigger config, and the trigger operator maybe not builtin.
+type CommonTrigger struct {
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Args       json.RawMessage `json:"args,omitempty"`
+	SaveLog    bool            `json:"saveLog,omitempty"`
+	SaveResult bool            `json:"saveResult,omitempty"`
 }
 
 // HTTPTrigger is a funcinst that will react at HTTP requests

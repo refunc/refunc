@@ -39,6 +39,17 @@ spec:
             description: TriggerSpec is the specification that describes a funcinst
               for refunc
             properties:
+              common:
+                description: CommonTrigger is a placeholder trigger, for store the
+                  trigger config, and the trigger operator maybe not builtin.
+                properties:
+                  args:
+                    x-kubernetes-preserve-unknown-fields: true
+                  saveLog:
+                    type: boolean
+                  saveResult:
+                    type: boolean
+                type: object
               cron:
                 description: CronTrigger is a funcinst that will be scheduled by cron
                   string
