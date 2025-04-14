@@ -76,6 +76,9 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 		err = archiver.Unarchive(string(bts), ld.taskRoot())
 		if err == nil && os.Geteuid() == 0 {
 			klog.Info("(loader) fix task folder's permission chown slicer:497")
+			if err := os.Chown("/tmp", 496, 495); err != nil { // https://github.com/lambci/lambci/blob/091023da4d97b6fd0f1eb6a8e08d3ca394252733/Dockerfile#L31
+				klog.Error(err)
+			}
 			return filepath.Walk(ld.taskRoot(), func(path string, f os.FileInfo, err error) error {
 				klog.V(4).Infof("(loader) chown for %q", path)
 				return os.Chown(path, 498, 497)
@@ -113,6 +116,9 @@ func (ld *simpleLoader) setup(fn *types.Function) (err error) {
 		err = archiver.Unarchive(filename, ld.taskRoot())
 		if err == nil && os.Geteuid() == 0 {
 			klog.Info("(loader) fix task folder's permission chown slicer:497")
+			if err := os.Chown("/tmp", 496, 495); err != nil {
+				klog.Error(err)
+			}
 			// nolint:errcheck
 			filepath.Walk(ld.taskRoot(), func(path string, f os.FileInfo, err error) error {
 				klog.V(4).Infof("(loader) chown for %q", path)
