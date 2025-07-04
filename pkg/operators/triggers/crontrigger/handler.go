@@ -16,7 +16,7 @@ import (
 	"github.com/refunc/refunc/pkg/env"
 	"github.com/refunc/refunc/pkg/messages"
 	"github.com/refunc/refunc/pkg/utils"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 )
 
 type cronHandler struct {
@@ -53,11 +53,10 @@ func (t *cronHandler) Next() (next time.Time, err error) {
 		return t.next, nil
 	}
 	// trigger is fired, or this is the first time to schedule
-	sched, err := cron.ParseStandard(trigger.Spec.Cron.Cron)
-	if err != nil {
-		// retry gocron default parser
-		sched, err = cron.Parse(trigger.Spec.Cron.Cron)
-	}
+	cronParser := cron.NewParser(
+		cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
+	)
+	sched, err := cronParser.Parse(trigger.Spec.Cron.Cron)
 	if err != nil {
 		return
 	}

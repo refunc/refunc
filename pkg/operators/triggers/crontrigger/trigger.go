@@ -106,6 +106,7 @@ func (r *Operator) handleTriggerAdd(o interface{}) {
 		operator: r,
 	})
 	if !loaded {
+		klog.Infof("(crontrigger) adding trigger %s", key)
 		r.scheduleTasks()
 	}
 }
@@ -130,7 +131,7 @@ func (r *Operator) handleTriggerUpdate(oldObj, curObj interface{}) {
 	if (old.Spec.Cron != nil && cur.Spec.Cron != nil) && (old.Spec.Cron.Cron != cur.Spec.Cron.Cron || old.Spec.Cron.Location != cur.Spec.Cron.Location) {
 		// delete and reschedule
 		key := k8sKey(cur)
-		klog.V(3).Infof("(crontrigger) updating trigger %s", key)
+		klog.Infof("(crontrigger) updating trigger %s", key)
 		r.triggers.Delete(key)
 		r.handleTriggerAdd(cur)
 	}
@@ -149,7 +150,7 @@ func (r *Operator) handleTriggerDelete(o interface{}) {
 
 	key := k8sKey(trigger)
 	if _, ok := r.triggers.Load(key); ok {
-		klog.V(3).Infof("(crontrigger) deleting trigger %s", key)
+		klog.Infof("(crontrigger) deleting trigger %s", key)
 		r.triggers.Delete(key)
 		r.scheduleTasks()
 	}
@@ -197,6 +198,7 @@ func (r *Operator) ioLoop(stopC <-chan struct{}, events observer.Stream) {
 
 	var (
 		tickC          <-chan time.Time = blockC
+		tickDone       bool             = false
 		scheduledTasks []*timeKeyPair
 		next           time.Time
 	)
@@ -220,30 +222,35 @@ func (r *Operator) ioLoop(stopC <-chan struct{}, events observer.Stream) {
 			first := scheduledTasks[0]
 			delta := first.t.Sub(next)
 			if delta == 0 {
+				if tickDone {
+					klog.Errorf("(crontrigger) ticker is done but next is not update")
+				}
 				// no need update current ticker
 				continue
 			}
 			// original trigger was deleted or updated
 			if dur := time.Until(first.t); dur > 0 {
 				next = first.t
-				tickC = time.After(dur)
-				klog.Infof("(crontrigger) next %s@%v", first.key, next.Format(time.RFC3339))
+				tickC, tickDone = time.After(dur), false
+				klog.Infof("(crontrigger) next %s@%v after %fs", first.key, next.Format(time.RFC3339), dur.Seconds())
 				continue
 			}
-
+			klog.Warningf("(crontrigger) scheduled tasks first is past time! tick is done: %v", tickDone)
 		case <-tickC:
+			tickDone = true
 		}
 
 		now := time.Now()
 		for _, tkp := range scheduledTasks {
 			val, ok := r.triggers.Load(tkp.key)
 			if !ok {
+				klog.Warningf("(crontrigger) %s trigger not found", tkp.key)
 				continue
 			}
 			h := val.(*cronHandler)
 
 			delta := now.Sub(tkp.t)
-			if delta > 30*time.Second {
+			if delta > time.Minute {
 				klog.Warningf("(crontrigger) %s missed trigger, want %v, current %v", h.trKey, tkp.t, now.Truncate(time.Second))
 				continue
 			}
@@ -252,7 +259,10 @@ func (r *Operator) ioLoop(stopC <-chan struct{}, events observer.Stream) {
 			}
 
 			// delta <= time.Minute, tirgger one task
-			val.(*cronHandler).Run(tkp.t)
+			go func() {
+				klog.Infof("(crontrigger) begin run cron %s task", tkp.key)
+				val.(*cronHandler).Run(tkp.t)
+			}()
 		}
 		// the pendding tasks not ready, re-schedule
 		r.scheduleTasks()
