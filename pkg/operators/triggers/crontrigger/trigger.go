@@ -224,6 +224,9 @@ func (r *Operator) ioLoop(stopC <-chan struct{}, events observer.Stream) {
 			if delta == 0 {
 				if tickDone {
 					klog.Errorf("(crontrigger) ticker is done but next is not update")
+					// fix some case, tickC triggered before next time
+					<-time.After(10 * time.Millisecond)
+					r.runScheduledTasks(scheduledTasks)
 				}
 				// no need update current ticker
 				continue
@@ -240,33 +243,37 @@ func (r *Operator) ioLoop(stopC <-chan struct{}, events observer.Stream) {
 			tickDone = true
 		}
 
-		now := time.Now()
-		for _, tkp := range scheduledTasks {
-			val, ok := r.triggers.Load(tkp.key)
-			if !ok {
-				klog.Warningf("(crontrigger) %s trigger not found", tkp.key)
-				continue
-			}
-			h := val.(*cronHandler)
-
-			delta := now.Sub(tkp.t)
-			if delta > time.Minute {
-				klog.Warningf("(crontrigger) %s missed trigger, want %v, current %v", h.trKey, tkp.t, now.Truncate(time.Second))
-				continue
-			}
-			if delta < 0 {
-				break
-			}
-
-			// delta <= time.Minute, tirgger one task
-			go func() {
-				klog.Infof("(crontrigger) begin run cron %s task", tkp.key)
-				val.(*cronHandler).Run(tkp.t)
-			}()
-		}
-		// the pendding tasks not ready, re-schedule
-		r.scheduleTasks()
+		r.runScheduledTasks(scheduledTasks)
 	}
+}
+
+func (r *Operator) runScheduledTasks(scheduledTasks []*timeKeyPair) {
+	now := time.Now()
+	for _, tkp := range scheduledTasks {
+		val, ok := r.triggers.Load(tkp.key)
+		if !ok {
+			klog.Warningf("(crontrigger) %s trigger not found", tkp.key)
+			continue
+		}
+		h := val.(*cronHandler)
+
+		delta := now.Sub(tkp.t)
+		if delta > time.Minute {
+			klog.Warningf("(crontrigger) %s missed trigger, want %v, current %v", h.trKey, tkp.t, now.Truncate(time.Second))
+			continue
+		}
+		if delta < 0 {
+			break
+		}
+
+		// delta <= time.Minute, tirgger one task
+		go func() {
+			klog.Infof("(crontrigger) begin run cron %s task", tkp.key)
+			val.(*cronHandler).Run(tkp.t)
+		}()
+	}
+	// the pendding tasks not ready, re-schedule
+	r.scheduleTasks()
 }
 
 func (r *Operator) getTriggerLister() (trlsiter func(labels.Selector) ([]*rfv1beta3.Trigger, error)) {
