@@ -14,7 +14,7 @@ const (
 	MaxPayloadSize = 6 << 20 // 6 MB
 	// MaxTimeout is max execution time enfoced by runtime
 	MaxTimeout = 4 * time.Hour
-	// DefaultJobTimeout is hard coded max timeout for a task, same as AWS
+	// DefaultJobTimeout is hard coded timeout for a task, is max timeout as AWS
 	DefaultJobTimeout = 9 * time.Minute
 )
 
